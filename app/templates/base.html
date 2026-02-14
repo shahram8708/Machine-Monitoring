@@ -63,7 +63,7 @@
                         {% if current_user.is_authenticated and current_user.is_admin and company_options %}
                         <li class="nav-item">
                             <form class="d-flex align-items-center gap-2" method="post" id="company-switcher" data-action-template="{{ url_for('main.switch_company', company_id=0) }}">
-                                {{ csrf_token() }}
+                                <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                 <label class="text-muted small mb-0">Company</label>
                                 <select class="form-select form-select-sm" name="company_id" onchange="this.form.action=this.dataset.actionTemplate.replace('0', this.value); this.form.submit();">
                                     {% for company in company_options %}
@@ -93,7 +93,7 @@
                                     </div>
                                     {% if current_user.role in ['admin','manager'] %}
                                     <form method="post" action="{{ url_for('alerts.resolve', alert_id=alert.id) }}" class="mt-2">
-                                        {{ csrf_token() }}
+                                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                         <button class="btn btn-sm btn-outline-success w-100">Mark resolved</button>
                                     </form>
                                     {% endif %}

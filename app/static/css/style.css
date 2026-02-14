@@ -57,3 +57,57 @@ pre {
 .live-card .text-muted {
     color: #cbd5e1 !important;
 }
+
+.markdown-content {
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+    font-weight: 700;
+    margin-top: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+    padding-left: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.markdown-content code {
+    background: #f1f3f5;
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.markdown-content pre {
+    background: #f1f3f5;
+    padding: 0.75rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin-bottom: 0.75rem;
+}
+
+.markdown-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0.75rem;
+}
+
+.markdown-content th,
+.markdown-content td {
+    border: 1px solid #dee2e6;
+    padding: 0.5rem 0.75rem;
+}
+
+.markdown-content th {
+    font-weight: 700;
+    background: #f8f9fa;
+}

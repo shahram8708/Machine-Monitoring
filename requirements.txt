@@ -12,3 +12,5 @@ Flask-Mail
 reportlab
 requests
 requests
+markdown
+bleach

@@ -61,7 +61,7 @@
                             {% endif %}
                             {% if current_user.role == 'admin' %}
                             <form method="post" action="{{ url_for('machines.delete_machine', machine_id=machine.id) }}" onsubmit="return confirm('Delete this machine? Sensors will be removed.');">
-                                {{ csrf_token() }}
+                                <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                 <button class="btn btn-outline-danger" type="submit" title="Delete">
                                     <i class="bi bi-trash"></i>
                                 </button>

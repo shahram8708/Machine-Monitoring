@@ -1,8 +1,14 @@
 from datetime import date
-from typing import Optional
+from typing import Optional as TypingOptional
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField, FloatField, DateField
-from wtforms.validators import DataRequired, Length, ValidationError, Optional, InputRequired
+from wtforms.validators import (
+    DataRequired,
+    Length,
+    ValidationError,
+    Optional as OptionalValidator,
+    InputRequired,
+)
 from app.models.machine import Machine
 
 
@@ -27,14 +33,17 @@ SENSOR_TYPE_CHOICES = [
 class MachineForm(FlaskForm):
     machine_name = StringField("Machine Name", validators=[DataRequired(), Length(max=120)])
     machine_type = StringField("Machine Type", validators=[DataRequired(), Length(max=120)])
-    location = StringField("Location", validators=[Optional(), Length(max=120)])
+    location = StringField("Location", validators=[OptionalValidator(), Length(max=120)])
     installation_date = DateField(
-        "Installation Date", validators=[Optional()], format="%Y-%m-%d", default=date.today
+        "Installation Date",
+        validators=[OptionalValidator()],
+        format="%Y-%m-%d",
+        default=date.today,
     )
     status = SelectField("Status", choices=MACHINE_STATUS_CHOICES, validators=[DataRequired()])
     submit = SubmitField("Save")
 
-    def __init__(self, company_id: int, machine: Optional[Machine] = None, *args, **kwargs):
+    def __init__(self, company_id: int, machine: TypingOptional[Machine] = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.company_id = company_id
         self.machine = machine

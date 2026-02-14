@@ -12,6 +12,15 @@
     const updatedAt = document.getElementById("updated-at");
     const statusBadge = document.getElementById("analysis-status");
 
+    const setMarkdown = (el, html, fallback) => {
+        if (!el) return;
+        if (html && html.trim()) {
+            el.innerHTML = html;
+        } else {
+            el.textContent = fallback;
+        }
+    };
+
     let gaugeChart = null;
 
     const colorForScore = (score) => {
@@ -79,8 +88,8 @@
         setStatus(data.status);
 
         if (data.status === "pending") {
-            maintenanceText.textContent = "AI is processing the latest telemetry...";
-            explanationText.textContent = "Awaiting results.";
+            setMarkdown(maintenanceText, null, "AI is processing the latest telemetry...");
+            setMarkdown(explanationText, null, "Awaiting results.");
             scoreLabel.textContent = "--";
             setRiskBadge(null);
             anomalyBanner.className = "alert alert-info d-block";
@@ -89,8 +98,12 @@
         }
 
         if (data.status === "failed") {
-            maintenanceText.textContent = data.maintenance_suggestion || "AI failed to provide guidance.";
-            explanationText.textContent = data.explanation || "AI processing failed.";
+            setMarkdown(
+                maintenanceText,
+                data.maintenance_suggestion_html,
+                data.maintenance_suggestion || "AI failed to provide guidance."
+            );
+            setMarkdown(explanationText, data.explanation_html, data.explanation || "AI processing failed.");
             scoreLabel.textContent = "--";
             setRiskBadge(null);
             anomalyBanner.className = "alert alert-danger d-block";
@@ -103,8 +116,12 @@
         scoreLabel.textContent = `${score.toFixed(1)}`;
         setRiskBadge(data.risk_level);
         setAnomaly(Boolean(data.anomaly));
-        maintenanceText.textContent = data.maintenance_suggestion || "No recommendation provided.";
-        explanationText.textContent = data.explanation || "No explanation provided.";
+        setMarkdown(
+            maintenanceText,
+            data.maintenance_suggestion_html,
+            data.maintenance_suggestion || "No recommendation provided."
+        );
+        setMarkdown(explanationText, data.explanation_html, data.explanation || "No explanation provided.");
         updatedAt.textContent = `Analysis timestamp: ${data.timestamp || "—"}`;
     };
 

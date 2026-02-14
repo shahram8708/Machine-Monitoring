@@ -15,7 +15,7 @@
         <a href="{{ url_for('ai.ai_insights', machine_id=machine.id) }}" class="btn btn-outline-success btn-sm"><i class="bi bi-robot me-1"></i>AI Insights</a>
         {% if current_user.role == 'admin' %}
         <form method="post" action="{{ url_for('machines.delete_machine', machine_id=machine.id) }}" onsubmit="return confirm('Delete this machine and all sensors?');">
-            {{ csrf_token() }}
+            <input type="hidden" name="_token" value="{{ csrf_token() }}">
             <button class="btn btn-danger btn-sm" type="submit"><i class="bi bi-trash"></i> Delete</button>
         </form>
         {% endif %}
@@ -79,7 +79,7 @@
                                         {% endif %}
                                         {% if current_user.role == 'admin' %}
                                         <form method="post" action="{{ url_for('machines.delete_sensor', machine_id=machine.id, sensor_id=sensor.id) }}" onsubmit="return confirm('Delete this sensor?');">
-                                            {{ csrf_token() }}
+                                            <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                             <button class="btn btn-outline-danger" type="submit" title="Delete">
                                                 <i class="bi bi-trash"></i>
                                             </button>

@@ -52,7 +52,7 @@
                         <div class="btn-group btn-group-sm" role="group">
                             <a class="btn btn-outline-primary" href="{{ url_for('admin.edit_user', user_id=user.id) }}"><i class="bi bi-pencil"></i></a>
                             <form method="post" action="{{ url_for('admin.deactivate_user', user_id=user.id) }}" onsubmit="return confirm('Deactivate this user?');">
-                                {{ csrf_token() }}
+                                <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                 <button class="btn btn-outline-danger" type="submit"><i class="bi bi-person-dash"></i></button>
                             </form>
                         </div>

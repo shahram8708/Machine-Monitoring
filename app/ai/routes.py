@@ -5,6 +5,7 @@ from app.decorators import role_required
 from app.models.ai_analysis import AiAnalysis
 from app.models.machine import Machine
 from app.security import get_active_company_id
+from app.utils.markdown_renderer import render_markdown
 from . import ai_bp
 
 
@@ -34,6 +35,9 @@ def ai_latest(machine_id: int):
     if not latest:
         return jsonify({"status": "pending", "message": "No AI analysis yet."})
 
+    maintenance_html = str(render_markdown(latest.maintenance_suggestion or ""))
+    explanation_html = str(render_markdown(latest.explanation or ""))
+
     return jsonify(
         {
             "status": latest.status,
@@ -42,7 +46,9 @@ def ai_latest(machine_id: int):
             "risk_level": latest.risk_level,
             "anomaly": latest.anomaly,
             "maintenance_suggestion": latest.maintenance_suggestion,
+            "maintenance_suggestion_html": maintenance_html,
             "explanation": latest.explanation,
+            "explanation_html": explanation_html,
             "timestamp": latest.timestamp.isoformat() if latest.timestamp else None,
             "created_at": latest.created_at.isoformat() if latest.created_at else None,
         }

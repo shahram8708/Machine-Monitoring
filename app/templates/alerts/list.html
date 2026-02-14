@@ -50,7 +50,7 @@
                     <td class="text-end">
                         {% if not alert.is_resolved and current_user.role in ['admin','manager'] %}
                         <form method="post" action="{{ url_for('alerts.resolve', alert_id=alert.id) }}" class="d-inline">
-                            {{ csrf_token() }}
+                            <input type="hidden" name="_token" value="{{ csrf_token() }}">
                             <button class="btn btn-sm btn-outline-success">Resolve</button>
                         </form>
                         {% else %}

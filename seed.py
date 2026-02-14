@@ -3,7 +3,7 @@ import random
 import threading
 import time
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Tuple
 
 import requests
@@ -11,8 +11,15 @@ from dotenv import load_dotenv
 
 from app import create_app
 from app.extensions import db
+from app.models.ai_analysis import AiAnalysis
+from app.models.alert import Alert, AlertTimeline
+from app.models.audit_log import AuditLog
 from app.models.company import Company
 from app.models.machine import Machine
+from app.models.machine_data import MachineData
+from app.models.machine_stats import MachineDailyStat, MachineHourlyStat
+from app.models.sensor import Sensor
+from app.models.user import User
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -389,6 +396,296 @@ def _default_profiles() -> List[MachineProfile]:
     ]
 
 
+def _ensure_users(app, company: Company) -> Dict[str, User]:
+    default_password = os.getenv("SEED_DEFAULT_PASSWORD", "ChangeMe123!")
+    seed_users = [
+        ("Admin User", os.getenv("SEED_ADMIN_EMAIL", "admin@example.com"), "admin"),
+        ("Ops Manager", os.getenv("SEED_MANAGER_EMAIL", "manager@example.com"), "manager"),
+        ("Viewer", os.getenv("SEED_VIEWER_EMAIL", "viewer@example.com"), "viewer"),
+    ]
+
+    with app.app_context():
+        company = db.session.merge(company)
+        users: Dict[str, User] = {}
+        for name, email, role in seed_users:
+            email_lower = email.lower()
+            user = User.query.filter_by(email=email_lower).first()
+            if not user:
+                user = User(name=name, email=email_lower, role=role, company_id=company.id)
+                user.set_password(default_password)
+                db.session.add(user)
+            users[email_lower] = user
+        db.session.commit()
+    return users
+
+
+def _sensor_thresholds(profile: MachineProfile) -> List[Tuple[str, str, float, float]]:
+    return [
+        ("temperature", "C", profile.idle_temp - 5, profile.critical_temp),
+        ("vibration", "mm/s", max(0.05, profile.idle_vibration * 0.5), profile.critical_vibration),
+        ("current", "A", max(0.0, profile.idle_current * 0.5), profile.critical_current),
+        ("voltage", "V", profile.base_voltage - (profile.voltage_variation * 2), profile.base_voltage + (profile.voltage_variation * 2)),
+        ("pressure", "bar", max(0.1, profile.base_pressure * 0.2), profile.base_pressure * 1.2),
+        ("humidity", "%", 10.0, 90.0),
+        ("speed", "RPM", 0.0, profile.base_speed * 1.2),
+    ]
+
+
+def _ensure_sensors(app, machines: Dict[str, Machine], profiles: List[MachineProfile]) -> Dict[int, List[Sensor]]:
+    profile_map = {profile.name: profile for profile in profiles}
+    sensor_map: Dict[int, List[Sensor]] = {}
+
+    with app.app_context():
+        for machine_name, machine in machines.items():
+            machine = db.session.merge(machine)
+            profile = profile_map[machine_name]
+            sensor_map[machine.id] = []
+            for sensor_type, unit, min_threshold, max_threshold in _sensor_thresholds(profile):
+                sensor = Sensor.query.filter_by(machine_id=machine.id, sensor_type=sensor_type).first()
+                if not sensor:
+                    sensor = Sensor(
+                        machine_id=machine.id,
+                        sensor_type=sensor_type,
+                        unit=unit,
+                        min_threshold=round(min_threshold, 3),
+                        max_threshold=round(max_threshold, 3),
+                    )
+                    db.session.add(sensor)
+                sensor_map[machine.id].append(sensor)
+        db.session.commit()
+
+    return sensor_map
+
+
+def _seed_machine_data(app, machines: Dict[str, Machine], profiles: List[MachineProfile]):
+    with app.app_context():
+        if MachineData.query.first():
+            return
+
+        profile_map = {profile.name: profile for profile in profiles}
+        base_ts = datetime.utcnow() - timedelta(minutes=55)
+
+        for machine_name, machine in machines.items():
+            machine = db.session.merge(machine)
+            profile = profile_map[machine_name]
+            for index in range(12):
+                ts = base_ts + timedelta(minutes=5 * index)
+                load = 0.15 + (index / 18) + random.uniform(-0.05, 0.05)
+                load = max(0.0, min(1.0, load))
+
+                temperature = profile.idle_temp + (profile.heavy_temp - profile.idle_temp) * load + random.uniform(-1.0, 1.2)
+                vibration = profile.idle_vibration + (profile.heavy_vibration - profile.idle_vibration) * load + random.uniform(-0.08, 0.12)
+                current = profile.idle_current + (profile.heavy_current - profile.idle_current) * load + random.uniform(-0.15, 0.35)
+                voltage = profile.base_voltage + random.uniform(-profile.voltage_variation, profile.voltage_variation)
+                pressure = profile.base_pressure * (0.25 + load) + random.uniform(-0.2, 0.2)
+                humidity = profile.base_humidity + random.uniform(-2.5, 2.5)
+                speed = profile.base_speed * load + random.uniform(-8.0, 8.0)
+
+                db.session.add(
+                    MachineData(
+                        machine_id=machine.id,
+                        timestamp=ts,
+                        temperature=round(_clamp(temperature, 0.0, profile.critical_temp + 5), 2),
+                        vibration=round(max(0.05, vibration), 3),
+                        current=round(max(0.0, current), 3),
+                        voltage=round(voltage, 2),
+                        pressure=round(max(0.0, pressure), 3),
+                        humidity=round(_clamp(humidity, 10.0, 95.0), 2),
+                        speed=round(max(0.0, speed), 2),
+                        running_status=load > 0.12,
+                    )
+                )
+
+        db.session.commit()
+
+
+def _seed_stats(app, machines: Dict[str, Machine]):
+    with app.app_context():
+        if MachineHourlyStat.query.first() and MachineDailyStat.query.first():
+            return
+
+        for machine in machines.values():
+            machine = db.session.merge(machine)
+            points = (
+                MachineData.query.filter_by(machine_id=machine.id)
+                .order_by(MachineData.timestamp.asc())
+                .all()
+            )
+            if not points:
+                continue
+
+            period_start = points[0].timestamp.replace(minute=0, second=0, microsecond=0)
+            period_end = period_start + timedelta(hours=1)
+            running_seconds = sum(300 for point in points if point.running_status)
+            idle_seconds = sum(300 for point in points if not point.running_status)
+
+            temperature_avg = sum(p.temperature for p in points) / len(points)
+            vibration_avg = sum(p.vibration for p in points) / len(points)
+            voltage_avg = sum(p.voltage for p in points) / len(points)
+            current_avg = sum(p.current for p in points) / len(points)
+            energy_kwh = sum((p.voltage * p.current) / 1000 / 12 for p in points)
+
+            if not MachineHourlyStat.query.filter_by(machine_id=machine.id).first():
+                db.session.add(
+                    MachineHourlyStat(
+                        machine_id=machine.id,
+                        period_start=period_start,
+                        period_end=period_end,
+                        temperature_avg=round(temperature_avg, 2),
+                        vibration_avg=round(vibration_avg, 3),
+                        voltage_avg=round(voltage_avg, 2),
+                        current_avg=round(current_avg, 3),
+                        energy_kwh=round(energy_kwh, 3),
+                        running_seconds=running_seconds,
+                        idle_seconds=idle_seconds,
+                        data_points=len(points),
+                    )
+                )
+
+            period_date = period_start.date()
+            if not MachineDailyStat.query.filter_by(machine_id=machine.id, period_date=period_date).first():
+                db.session.add(
+                    MachineDailyStat(
+                        machine_id=machine.id,
+                        period_date=period_date,
+                        temperature_avg=round(temperature_avg, 2),
+                        vibration_avg=round(vibration_avg, 3),
+                        voltage_avg=round(voltage_avg, 2),
+                        current_avg=round(current_avg, 3),
+                        energy_kwh=round(energy_kwh, 3),
+                        running_seconds=running_seconds,
+                        idle_seconds=idle_seconds,
+                        data_points=len(points),
+                    )
+                )
+
+        db.session.commit()
+
+
+def _seed_ai_analyses(app, machines: Dict[str, Machine]):
+    with app.app_context():
+        if AiAnalysis.query.first():
+            return
+
+        now = datetime.utcnow()
+        for machine in machines.values():
+            machine = db.session.merge(machine)
+            db.session.add(
+                AiAnalysis(
+                    machine_id=machine.id,
+                    timestamp=now - timedelta(minutes=10),
+                    health_score=round(random.uniform(78, 94), 2),
+                    risk_level=random.choice(["low", "medium"]),
+                    anomaly=random.choice([False, False, True]),
+                    maintenance_suggestion="Inspect bearings and verify lubrication schedule.",
+                    explanation="Baseline telemetry indicates stable load with minor vibration drift.",
+                    status="completed",
+                )
+            )
+        db.session.commit()
+
+
+def _seed_alerts(app, machines: Dict[str, Machine], company: Company) -> List[Alert]:
+    with app.app_context():
+        if Alert.query.first():
+            return []
+
+        company = db.session.merge(company)
+        alerts: List[Alert] = []
+        now = datetime.utcnow()
+        chosen = list(machines.values())[:2]
+        for machine in chosen:
+            machine = db.session.merge(machine)
+            latest_point = (
+                MachineData.query.filter_by(machine_id=machine.id)
+                .order_by(MachineData.timestamp.desc())
+                .first()
+            )
+            alert = Alert(
+                machine_id=machine.id,
+                company_id=company.id,
+                sensor_type="temperature",
+                value=latest_point.temperature if latest_point else 0.0,
+                threshold=(latest_point.temperature + 4) if latest_point else 0.0,
+                severity=random.choice(["medium", "high", "critical"]),
+                message="Temperature exceeded safe operating range.",
+                created_at=now - timedelta(minutes=5),
+                is_resolved=False,
+                escalation_level=1,
+                last_escalated_at=now - timedelta(minutes=2),
+            )
+            db.session.add(alert)
+            db.session.flush()
+
+            db.session.add_all(
+                [
+                    AlertTimeline(
+                        alert_id=alert.id,
+                        event="triggered",
+                        severity=alert.severity,
+                        note="Automated detector flagged high temperature spike.",
+                        created_at=alert.created_at,
+                    ),
+                    AlertTimeline(
+                        alert_id=alert.id,
+                        event="acknowledged",
+                        severity=alert.severity,
+                        note="Operator notified via dashboard.",
+                        created_at=alert.created_at + timedelta(minutes=1),
+                    ),
+                ]
+            )
+            alerts.append(alert)
+
+        db.session.commit()
+        return alerts
+
+
+def _seed_audit_logs(app, users: Dict[str, User], machines: Dict[str, Machine], alerts: List[Alert]):
+    with app.app_context():
+        if AuditLog.query.first():
+            return
+
+        admin = users.get(os.getenv("SEED_ADMIN_EMAIL", "admin@example.com").lower())
+        machine = next(iter(machines.values())) if machines else None
+        if admin:
+            admin = db.session.merge(admin)
+        if machine:
+            machine = db.session.merge(machine)
+        now = datetime.utcnow()
+
+        if machine:
+            db.session.add(
+                AuditLog(
+                    user_id=admin.id if admin else None,
+                    action="machine_created",
+                    entity_type="machine",
+                    entity_id=machine.id,
+                    old_value=None,
+                    new_value={"machine_name": machine.machine_name, "location": machine.location},
+                    timestamp=now - timedelta(minutes=2),
+                    ip_address="127.0.0.1",
+                )
+            )
+
+        if alerts:
+            alert = db.session.merge(alerts[0])
+            db.session.add(
+                AuditLog(
+                    user_id=admin.id if admin else None,
+                    action="alert_generated",
+                    entity_type="alert",
+                    entity_id=alert.id,
+                    old_value=None,
+                    new_value={"severity": alert.severity, "sensor": alert.sensor_type},
+                    timestamp=now - timedelta(minutes=1),
+                    ip_address="127.0.0.1",
+                )
+            )
+
+        db.session.commit()
+
+
 def _resolve_company(app) -> Company:
     company_name = os.getenv("SIM_COMPANY_NAME")
     with app.app_context():
@@ -413,6 +710,7 @@ def _resolve_company(app) -> Company:
 def _ensure_machines(app, company: Company, profiles: List[MachineProfile]) -> Dict[str, Machine]:
     machines: Dict[str, Machine] = {}
     with app.app_context():
+        company = db.session.merge(company)
         for profile in profiles:
             machine = Machine.query.filter_by(company_id=company.id, machine_name=profile.name).first()
             if not machine:
@@ -436,23 +734,29 @@ def ensure_seed_data(app) -> Tuple[List[MachineProfile], Dict[str, Machine]]:
     profiles = _default_profiles()
     company = _resolve_company(app)
     machines = _ensure_machines(app, company, profiles)
+    users = _ensure_users(app, company)
+    _ensure_sensors(app, machines, profiles)
+    _seed_machine_data(app, machines, profiles)
+    _seed_stats(app, machines)
+    _seed_ai_analyses(app, machines)
+    alerts = _seed_alerts(app, machines, company)
+    _seed_audit_logs(app, users, machines, alerts)
 
-    print("[SEED] Database and baseline machine records are ready.")
+    print("[SEED] Database, users, machines, sensors, data points, alerts, AI analyses, and audit logs are ready.")
     return profiles, machines
 
 
 def main():
+    app = create_app()
+    profiles, machines = ensure_seed_data(app)
     simulation_mode = os.getenv("SIMULATION_MODE", "true").lower() == "true"
     if not simulation_mode:
-        print("Simulation disabled (SIMULATION_MODE=false). Exiting.")
+        print("Simulation disabled (SIMULATION_MODE=false). Seed data prepared; skipping live simulator.")
         return
 
     data_interval = float(os.getenv("SIM_DATA_INTERVAL", "5"))
     heartbeat_interval = float(os.getenv("SIM_HEARTBEAT_INTERVAL", "30"))
     base_url = os.getenv("SIM_API_BASE_URL", "http://localhost:5000/api/v1")
-
-    app = create_app()
-    profiles, machines = ensure_seed_data(app)
 
     stop_event = threading.Event()
     simulators: List[threading.Thread] = []
