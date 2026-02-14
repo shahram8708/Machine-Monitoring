@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Alerts{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0">Alerts</h4>
+        <p class="text-muted small mb-0">Real-time incidents across your active factory.</p>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body table-responsive">
+        <table class="table align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Time</th>
+                    <th>Machine</th>
+                    <th>Signal</th>
+                    <th>Value</th>
+                    <th>Threshold</th>
+                    <th>Severity</th>
+                    <th>Timeline</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alert in alerts %}
+                <tr>
+                    <td>{{ alert.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ alert.machine.machine_name }}</td>
+                    <td class="text-capitalize">{{ alert.sensor_type.replace('_', ' ') }}</td>
+                    <td>{{ '%.2f'|format(alert.value) if alert.value is not none else '—' }}</td>
+                    <td>{{ '%.2f'|format(alert.threshold) if alert.threshold is not none else '—' }}</td>
+                    <td><span class="badge bg-{{ 'danger' if alert.severity=='critical' else 'warning' if alert.severity=='high' else 'info' if alert.severity=='medium' else 'secondary' }} text-uppercase">{{ alert.severity }}</span></td>
+                    <td>
+                        <div class="small text-muted">
+                            {% for t in alert.timelines[-3:] %}
+                            <div>• {{ t.created_at.strftime('%H:%M') }} — {{ t.event|replace('_', ' ')|capitalize }}{% if t.note %}: {{ t.note }}{% endif %}</div>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if alert.is_resolved %}
+                        <span class="badge bg-success-subtle text-success">Resolved</span>
+                        {% else %}
+                        <span class="badge bg-danger-subtle text-danger">Open</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% if not alert.is_resolved and current_user.role in ['admin','manager'] %}
+                        <form method="post" action="{{ url_for('alerts.resolve', alert_id=alert.id) }}" class="d-inline">
+                            {{ csrf_token() }}
+                            <button class="btn btn-sm btn-outline-success">Resolve</button>
+                        </form>
+                        {% else %}
+                        <span class="text-muted small">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" class="text-center text-muted py-4">No alerts.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if pagination.pages > 1 %}
+    <div class="card-footer d-flex justify-content-between align-items-center">
+        <div class="text-muted small">Page {{ pagination.page }} of {{ pagination.pages }}</div>
+        <div>
+            {% if pagination.has_prev %}<a class="btn btn-sm btn-outline-secondary" href="{{ url_for('alerts.list_alerts', page=pagination.prev_num) }}">Previous</a>{% endif %}
+            {% if pagination.has_next %}<a class="btn btn-sm btn-outline-secondary ms-1" href="{{ url_for('alerts.list_alerts', page=pagination.next_num) }}">Next</a>{% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

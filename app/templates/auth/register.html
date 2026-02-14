@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Register | Machine Monitoring{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-xl-5">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <div class="text-center mb-3">
+                    <i class="bi bi-building fs-1 text-primary"></i>
+                    <h5 class="mt-2">Create Your Organization</h5>
+                </div>
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ form.name.label(class_='form-label') }}
+                        {{ form.name(class_='form-control', placeholder='Jane Doe') }}
+                        {% for error in form.name.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.email.label(class_='form-label') }}
+                        {{ form.email(class_='form-control', placeholder='you@example.com') }}
+                        {% for error in form.email.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.company_name.label(class_='form-label') }}
+                        {{ form.company_name(class_='form-control', placeholder='Acme Industries') }}
+                        {% for error in form.company_name.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.password.label(class_='form-label') }}
+                            {{ form.password(class_='form-control', placeholder='Strong password') }}
+                            {% for error in form.password.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.confirm_password.label(class_='form-label') }}
+                            {{ form.confirm_password(class_='form-control', placeholder='Repeat password') }}
+                            {% for error in form.confirm_password.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        {{ form.role.label(class_='form-label') }}
+                        {{ form.role(class_='form-select') }}
+                        {% for error in form.role.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="d-grid">
+                        {{ form.submit(class_='btn btn-primary') }}
+                    </div>
+                    <div class="text-center mt-3">
+                        <span class="small">Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a></span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

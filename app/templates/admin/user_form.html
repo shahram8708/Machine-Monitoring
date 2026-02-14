@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit' if is_edit else 'Create' }} User{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="mb-3">{{ 'Edit User' if is_edit else 'Create User' }}</h5>
+                <form method="post" novalidate>
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">{{ form.name.label(class_='form-label') }}{{ form.name(class_='form-control') }}{% for e in form.name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+                    <div class="mb-3">{{ form.email.label(class_='form-label') }}{{ form.email(class_='form-control') }}{% for e in form.email.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">{{ form.role.label(class_='form-label') }}{{ form.role(class_='form-select') }}</div>
+                        <div class="col-md-6 mb-3">{{ form.company_id.label(class_='form-label') }}{{ form.company_id(class_='form-select') }}</div>
+                    </div>
+                    <div class="mb-3">{{ form.password.label(class_='form-label') }}{{ form.password(class_='form-control', placeholder='Leave blank to keep current') }}{% for e in form.password.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+                    <div class="form-check form-switch mb-3">{{ form.active(class_='form-check-input') }}{{ form.active.label(class_='form-check-label') }}</div>
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">Cancel</a>
+                        {{ form.submit(class_='btn btn-primary') }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

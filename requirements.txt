@@ -1,0 +1,14 @@
+Flask
+Flask-Login
+Flask-WTF
+Flask-Bcrypt
+Flask-SQLAlchemy
+Flask-Migrate
+python-dotenv
+gunicorn
+APScheduler
+google-genai
+Flask-Mail
+reportlab
+requests
+requests

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0">Operational Reports</h4>
+        <p class="text-muted small mb-0">Download PDF insights for each machine.</p>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body table-responsive">
+        <table class="table align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Machine</th>
+                    <th>Type</th>
+                    <th>Location</th>
+                    <th class="text-end">Reports</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for machine in machines %}
+                <tr>
+                    <td class="fw-semibold">{{ machine.machine_name }}</td>
+                    <td>{{ machine.machine_type }}</td>
+                    <td>{{ machine.location or '—' }}</td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a class="btn btn-outline-primary" href="{{ url_for('reports.daily_report', machine_id=machine.id) }}">Daily</a>
+                            <a class="btn btn-outline-primary" href="{{ url_for('reports.weekly_report', machine_id=machine.id) }}">Weekly</a>
+                            <a class="btn btn-outline-primary" href="{{ url_for('reports.monthly_report', machine_id=machine.id) }}">Monthly</a>
+                            <a class="btn btn-outline-success" href="{{ url_for('reports.energy_report', machine_id=machine.id) }}">Energy</a>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center text-muted py-4">No machines available.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

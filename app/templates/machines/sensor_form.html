@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit Sensor' if is_edit else 'Add Sensor' }} | Machine Monitoring{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="mb-0">{{ 'Edit Sensor' if is_edit else 'Add Sensor' }}</h5>
+                        <p class="text-muted small mb-0">Machine: {{ machine.machine_name }}</p>
+                    </div>
+                    <a href="{{ url_for('machines.machine_detail', machine_id=machine.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back</a>
+                </div>
+                <form method="post" novalidate>
+                    {{ form.hidden_tag() }}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            {{ form.sensor_type.label(class_='form-label') }}
+                            {{ form.sensor_type(class_='form-select') }}
+                            {% for error in form.sensor_type.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.unit.label(class_='form-label') }}
+                            {{ form.unit(class_='form-control', placeholder='°C, A, V, etc.') }}
+                            {% for error in form.unit.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.min_threshold.label(class_='form-label') }}
+                            {{ form.min_threshold(class_='form-control', step='any') }}
+                            {% for error in form.min_threshold.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.max_threshold.label(class_='form-label') }}
+                            {{ form.max_threshold(class_='form-control', step='any') }}
+                            {% for error in form.max_threshold.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a class="btn btn-outline-secondary" href="{{ url_for('machines.machine_detail', machine_id=machine.id) }}">Cancel</a>
+                        {{ form.submit(class_='btn btn-primary') }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Create Machine | Machine Monitoring{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-7">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="mb-0">New Machine</h5>
+                        <p class="text-muted small mb-0">Register a machine for {{ current_user.company.company_name }}</p>
+                    </div>
+                    <a href="{{ url_for('machines.list_machines') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back</a>
+                </div>
+                <form method="post" novalidate>
+                    {{ form.hidden_tag() }}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            {{ form.machine_name.label(class_='form-label') }}
+                            {{ form.machine_name(class_='form-control', placeholder='Line 1 Conveyor') }}
+                            {% for error in form.machine_name.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.machine_type.label(class_='form-label') }}
+                            {{ form.machine_type(class_='form-control', placeholder='Conveyor') }}
+                            {% for error in form.machine_type.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.location.label(class_='form-label') }}
+                            {{ form.location(class_='form-control', placeholder='Plant 1 - Bay A') }}
+                            {% for error in form.location.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form.installation_date.label(class_='form-label') }}
+                            {{ form.installation_date(class_='form-control') }}
+                            {% for error in form.installation_date.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form.status.label(class_='form-label') }}
+                            {{ form.status(class_='form-select') }}
+                            {% for error in form.status.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a class="btn btn-outline-secondary" href="{{ url_for('machines.list_machines') }}">Cancel</a>
+                        {{ form.submit(class_='btn btn-primary') }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
