@@ -6,7 +6,7 @@ from typing import Iterable
 
 import bleach
 import markdown
-from flask import Markup
+from markupsafe import Markup
 
 # Allow rich formatting while blocking unsafe HTML.
 ALLOWED_TAGS: Iterable[str] = (
