@@ -17,8 +17,6 @@ venv/
 *.log
 *.pid
 
-# Flask / SQLAlchemy
-instance/
 migrations/
 
 # Node and frontend builds
