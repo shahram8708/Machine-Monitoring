@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Maintenance Dashboard{% endblock %}
+{% block content %}
+<div class="row g-3" id="dashboard-maintenance">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">Maintenance Head</h4>
+        <span class="badge bg-warning text-dark">Reliability Focus</span>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">MTBF (hrs)</div>
+                <h3 class="mb-1" id="mtbf">--</h3>
+                <div class="text-muted small">Mean time between failures</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">MTTR (hrs)</div>
+                <h3 class="mb-1" id="mttr">--</h3>
+                <div class="text-muted small">Mean time to repair</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Frequent Failures</div>
+                <h3 class="mb-1" id="failures-count">--</h3>
+                <div class="text-muted small">7-day window</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Workload Summary</div>
+                <h3 class="mb-1" id="workload">--</h3>
+                <div class="text-muted small">By open alerts</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">MTBF Trend</h6>
+                    <span class="text-muted small">7 days</span>
+                </div>
+                <canvas id="mtbf-trend"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">MTTR Trend</h6>
+                    <span class="text-muted small">7 days</span>
+                </div>
+                <canvas id="mttr-trend"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Frequent Failure Machines</h6>
+                    <span class="text-muted small">Alerts & downtime</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0" id="failure-table">
+                        <thead>
+                            <tr>
+                                <th>Machine</th>
+                                <th>Plant</th>
+                                <th>OEE</th>
+                                <th>Downtime</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+window.dashboardConfig = {
+    mode: "maintenance",
+    endpoints: {
+        summary: "/api/v1/kpi/company-summary",
+        comparison: "/api/v1/comparison/machines"
+    },
+    pollInterval: 20000
+};
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

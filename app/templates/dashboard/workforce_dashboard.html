@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h2 class="mb-1">Maintenance Workforce</h2>
+      <p class="text-muted mb-0">Efficiency scores, workload balance, SLA compliance</p>
+    </div>
+    <div class="text-muted" id="wf-last-updated">--</div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-5">
+      <div class="card h-100">
+        <div class="card-header">Technician Ranking</div>
+        <div class="table-responsive">
+          <table class="table mb-0" id="wf-ranking">
+            <thead><tr><th>Technician</th><th>Score</th><th>Tasks</th><th>SLA</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-header">Workload Distribution</div>
+        <div class="card-body">
+          <canvas id="wf-workload-chart" height="240"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3">
+      <div class="card h-100">
+        <div class="card-header">SLA & Delays</div>
+        <div class="card-body">
+          <h4 class="mb-2" id="wf-open-tasks">--</h4>
+          <p class="text-muted mb-1">Open tasks</p>
+          <h5 class="text-danger" id="wf-delayed">--</h5>
+          <p class="text-muted mb-0">Delayed tasks</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>window.ACCESS_TOKEN = "{{ access_token }}";</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/workforce.js') }}"></script>
+{% endblock %}

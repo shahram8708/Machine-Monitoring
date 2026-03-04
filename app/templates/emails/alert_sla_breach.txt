@@ -1,0 +1,11 @@
+{{ headline or subject }}
+
+Machine: {{ machine_name or ('Machine #' ~ machine_id) }}
+Priority: {{ priority_score }}
+SLA Deadline: {{ sla_deadline }}
+Plant: {{ plant_name or 'N/A' }}
+When: {{ triggered_at }}
+
+{{ message }}
+
+Resolve: {{ action_url or 'Dashboard' }}

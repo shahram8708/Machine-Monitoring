@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Technician Dashboard{% endblock %}
+{% block content %}
+<div class="row g-3" id="dashboard-tech">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">Technician View</h4>
+        <span class="badge bg-success">Assigned Machines</span>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Assigned Machines</div>
+                <h3 class="mb-1" id="tech-machines">--</h3>
+                <div class="text-muted small">Based on plant mapping</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Open Downtime Events</div>
+                <h3 class="mb-1" id="tech-downtime">--</h3>
+                <div class="text-muted small">Unresolved alerts</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Average Health</div>
+                <h3 class="mb-1" id="tech-health">--</h3>
+                <div class="text-muted small">Across assigned machines</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Health Status</h6>
+                    <span class="text-muted small">Latest</span>
+                </div>
+                <canvas id="tech-health-bar"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Recent Downtime Events</h6>
+                    <span class="text-muted small">All time</span>
+                </div>
+                <canvas id="tech-downtime-trend"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Repair History</h6>
+                    <span class="text-muted small">Resolved alerts</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0" id="tech-history">
+                        <thead>
+                            <tr>
+                                <th>Machine</th>
+                                <th>Severity</th>
+                                <th>Message</th>
+                                <th>Resolved At</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+window.dashboardConfig = {
+    mode: "technician",
+    endpoints: {
+        comparison: "/api/v1/comparison/machines",
+        health: "/api/v1/health/plant/{{ plant_id if plant_id else 0 }}",
+        kpi: "/api/v1/kpi/company-summary"
+    },
+    pollInterval: 20000
+};
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

@@ -30,28 +30,9 @@ def _parse_date(value: str) -> datetime:
 
 
 def _parse_range() -> tuple[datetime, datetime]:
-    now = datetime.utcnow()
-    default_start = (now - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
-    default_end = now.replace(hour=23, minute=59, second=59, microsecond=0)
-
-    start_param = request.args.get("start_date")
-    end_param = request.args.get("end_date")
-
-    start_dt = _parse_date(start_param) if start_param else default_start
-    end_dt = _parse_date(end_param) if end_param else default_end
-
-    if start_dt is None:
-        start_dt = default_start
-    if end_dt is None:
-        end_dt = default_end
-
-    # Normalize to day boundaries for consistency
-    start_dt = start_dt.replace(hour=0, minute=0, second=0, microsecond=0)
-    end_dt = end_dt.replace(hour=23, minute=59, second=59, microsecond=0)
-
-    if start_dt > end_dt:
-        start_dt, end_dt = end_dt, start_dt
-
+    # Return an unbounded range so analytics can use full history
+    start_dt = datetime.min.replace(year=1970, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    end_dt = datetime.utcnow().replace(microsecond=0)
     return start_dt, end_dt
 
 
@@ -91,4 +72,15 @@ def analytics_data(machine_id: int):
             "energy": energy_series,
             "runtime": runtime,
         }
+    )
+
+
+@analytics_bp.route("/advanced")
+@login_required
+@role_required("admin", "manager", "viewer", "SUPER_ADMIN", "ENTERPRISE_ADMIN")
+def advanced_analytics_page():
+    return render_template(
+        "dashboard/advanced_analytics.html",
+        start_date=None,
+        end_date=None,
     )

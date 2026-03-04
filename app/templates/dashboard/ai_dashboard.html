@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}AI Predictive Dashboard{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="mb-0">AI Predictive Maintenance</h4>
+        <p class="text-muted small mb-0">Driven failure risk, RUL, anomalies, and guidance.</p>
+    </div>
+    {% if machines %}
+    <div class="d-flex gap-2">
+        <select class="form-select form-select-sm" id="machine-picker">
+            {% for machine in machines %}
+            <option value="{{ machine.id }}">{{ machine.machine_name }} ({{ machine.machine_type }})</option>
+            {% endfor %}
+        </select>
+        <button class="btn btn-primary btn-sm" id="run-prediction-btn">
+            <i class="bi bi-cpu"></i> Run Prediction
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" id="refresh-btn">
+            <i class="bi bi-arrow-repeat"></i> Refresh
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+{% if not machines %}
+<div class="alert alert-warning">No machines available for your scope. Add a machine or request plant access.</div>
+{% else %}
+
+<div class="row g-3">
+    <div class="col-xl-3 col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body text-center">
+                <h6 class="text-uppercase text-muted small mb-2">Failure Probability</h6>
+                <canvas id="risk-gauge" height="240"></canvas>
+                <div class="fw-bold fs-4 mt-2" id="risk-score">--</div>
+                <span class="badge" id="risk-level">--</span>
+                <div class="mt-2 small text-muted">Confidence: <span id="confidence-label">--</span></div>
+                <div class="mt-2" id="early-warning"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-9 col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <h6 class="text-uppercase text-muted small mb-1">Failure Probability Trend</h6>
+                        <p class="text-muted small mb-0">All time</p>
+                    </div>
+                    <span class="badge bg-secondary-subtle text-secondary" id="last-updated">--</span>
+                </div>
+                <canvas id="failure-trend" height="140"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row g-3 mt-2">
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="text-uppercase text-muted small">RUL Estimate</h6>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="display-6" id="rul-hours">--</div>
+                    <div>
+                        <div class="text-muted small">Hours remaining</div>
+                        <div class="fw-semibold" id="rul-days">-- days</div>
+                        <span class="badge bg-info-subtle text-info" id="degradation-stage">Stage --</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="text-uppercase text-muted small">AI Explanation</h6>
+                <div class="small" id="ai-explanation">--</div>
+                <div class="mt-2 small text-muted" id="anomaly-note">--</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="text-uppercase text-muted small">Preventive Actions</h6>
+                <ul class="mb-2 list-unstyled" id="action-list"></ul>
+                <div class="small text-muted" id="strategy-text">--</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+window.aiDashboardConfig = {
+    accessToken: "{{ access_token }}",
+    predictionUrl: "{{ url_for('api.prediction_latest', machine_id=0) }}",
+    historyUrl: "{{ url_for('api.prediction_history', machine_id=0) }}",
+    plantSummaryUrl: "{{ url_for('api.prediction_plant_summary') }}"
+};
+</script>
+<script src="{{ url_for('static', filename='js/ai_dashboard.js') }}"></script>
+{% endblock %}

@@ -42,7 +42,7 @@
 - **Secure data ingest API:** Machines post telemetry with `X-API-KEY`; payload validates timestamps, numerics, and running status; rejects mismatched machine IDs; stores raw points.
 - **Live status & dashboards:** Role-protected dashboards show machine status, last seen, and latest readings; live endpoints provide JSON for UI refresh.
 - **Alerting with escalation:** Threshold checks per sensor create alerts, deduplicate recent ones, and escalate severity over time with email notifications and timelines.
-- **AI maintenance insights (Gemini):** Background worker fetches latest data, builds historical context, calls Gemini, and stores health score, risk level, anomaly flag, and suggestions.
+- **AI predictive maintenance (Gemini-2.5-Flash):** Central Gemini service with retry/timeout, structured prompts for failure probability, RUL, degradation, anomaly reasoning, preventive actions, history storage, plant summaries, and polling-friendly REST endpoints.
 - **Analytics & trends:** Temperature, vibration, energy, and runtime trends with date ranges; aggregates hourly/daily to reduce load and support long-range views.
 - **PDF reporting:** Daily/weekly/monthly/energy reports with runtime, energy, temperature, AI health, risk, and recent alerts exported as PDFs.
 
@@ -58,7 +58,7 @@
 - **Search & filters:** Machine list supports search by name/type/location; audit page filters by action/entity/user.
 
 **Hidden / backend features**
-- **Background scheduler:** Marks stale machines offline, escalates alerts, runs nightly aggregation, and starts AI worker after app init.
+- **Background scheduler:** Marks stale machines offline, escalates alerts, runs nightly aggregation, triggers predictive scans every 30 minutes, and starts AI worker after app init.
 - **Data retention & aggregation:** Raw data purged after retention; hourly stats rolled into daily; energy computed from voltage/current over time windows.
 - **Mail notifications:** Escalation levels target managers then admins via configured SMTP.
 
@@ -120,9 +120,11 @@
   2) Create and activate a virtual environment (`python -m venv .venv` then activate).  
   3) Copy .env.example to `.env` and fill values (SECRET_KEY, DATABASE_URL, GEMINI_API_KEY, mail settings).  
   4) Install dependencies: `pip install -r requirements.txt`.  
-  5) Initialize DB and seed baseline data: run `python run.py` once (creates tables and seed company/machines if simulation on).  
-  6) (Optional) Run simulator to stream demo data: `python seed.py` with `SIMULATION_MODE=true`.  
-  7) Start the server: `python run.py` (disables auto-reloader to keep worker stable).
+   5) Initialize DB and seed baseline data: run `python run.py` once (creates tables and seed company/machines if simulation on).  
+   6) Apply database migrations (includes AI prediction history): `flask db migrate -m "ai_predictive_engine"` then `flask db upgrade`.  
+   7) (Optional) Seed KPI/health samples: run `python -c "from app import create_app; from app.extensions import db; from app.models.machine import Machine; from app.services.kpi_service import compute_daily_kpi; from app.services.health_service import compute_health_score; app=create_app(); ctx=app.app_context(); ctx.push(); [compute_health_score(m) for m in Machine.query.all()]; db.session.commit();"`.  
+   8) (Optional) Run simulator to stream demo data: `python seed.py` with `SIMULATION_MODE=true`.  
+   9) Start the server: `python run.py` (disables auto-reloader to keep worker stable).
 - **How to access:** Open `http://127.0.0.1:5000/` and register a first admin account, or log in if already seeded.
 - **Troubleshooting:**  
   - Missing Gemini key → AI analyses stay pending/failed; set `GEMINI_API_KEY`.  
@@ -142,15 +144,24 @@
   - **Alerts:** View alert list, resolve when handled; unread count shows in navbar; escalations raise severity automatically.  
   - **Analytics:** Open machine analytics to choose date range and view temperature, vibration, energy, and runtime series.  
   - **AI insights:** Machine AI page shows latest health score, risk, anomaly flag, suggestions, and explanation.  
+  - **AI Predictive Dashboard:** Gemini-driven failure probability gauge, 30-day trend, RUL panel, anomaly note, preventive actions, manual run button, and 30–60s polling.  
   - **Reports:** Download daily/weekly/monthly/energy PDFs per machine for handoffs or audits.  
   - **Admin:** Create/edit/deactivate users, set roles and company, switch company context when needed.  
   - **Audit logs:** Review recent actions (filters by action/entity/user).
+
+  ## 1️⃣0️⃣ Quick Testing (API)
+  - Get latest prediction: `curl -H "Authorization: Bearer <token>" http://localhost:5000/api/v1/ai/prediction/machine/<id>`  
+  - Force new prediction: `curl -X POST -H "Authorization: Bearer <token>" http://localhost:5000/api/v1/ai/prediction/machine/<id>`  
+  - Fetch history: `curl -H "Authorization: Bearer <token>" http://localhost:5000/api/v1/ai/prediction/history/<id>`  
 
 ## 9️⃣ Environment Variables / Configuration
 - `FLASK_ENV` — `development` or `production`; selects config.  
 - `SECRET_KEY` — session/signing secret; set a strong value.  
 - `DATABASE_URL` — SQLAlchemy URL (default SQLite file).  
 - `GEMINI_API_KEY` — required for AI analyses.  
+- `GEMINI_MODEL` — defaults to `gemini-2.5-flash`.  
+- `GEMINI_TIMEOUT_SECONDS`, `GEMINI_MAX_RETRIES` — network resilience knobs.  
+- `AI_FAILURE_THRESHOLD`, `AI_HEALTH_THRESHOLD`, `AI_DEGRADATION_THRESHOLD` — early warning controls.  
 - `SIMULATION_MODE` — when true, seeding ensures demo company/machines.  
 - `SIM_API_BASE_URL`, `SIM_INGEST_INTERVAL_SECONDS`, `SIM_HEARTBEAT_INTERVAL_SECONDS`, `SIM_DATA_INTERVAL`, `SIM_HEARTBEAT_INTERVAL`, `SIM_COMPANY_NAME` — simulator endpoints and pacing.  
 - Mail: `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USE_TLS`, `MAIL_USE_SSL`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_DEFAULT_SENDER`.  
@@ -217,3 +228,24 @@
 
 ## 1️⃣8️⃣ Final Professional Conclusion
 This platform unifies telemetry ingest, alerting, AI diagnostics, analytics, and reporting into a single, role-secured web application. It is production-minded (background jobs, escalation, audit trails) yet friendly to pilots through built-in simulation. With clear extension points and a modern Python stack, it can evolve into a full-scale industrial monitoring product.
+
+
+
+
+
+
+@"
+from app import create_app
+from app.extensions import db
+from app.models.user import User
+
+app = create_app()
+with app.app_context():
+    u = User.query.filter_by(email="priya.nair@aurora-precision.com").first()
+    if not u:
+        raise SystemExit("User not found")
+    u.set_password("Aurora!Tech#25")
+    u.is_active = True
+    db.session.commit()
+    print("Password reset for Priya")
+"@ | python -

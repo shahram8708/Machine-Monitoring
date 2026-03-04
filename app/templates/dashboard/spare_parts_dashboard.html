@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h2 class="mb-1">Spare Parts Intelligence</h2>
+      <p class="text-muted mb-0">Predicted demand, stock-out risk, and reorder guidance</p>
+    </div>
+    <div class="text-muted" id="sp-last-updated">--</div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span>Predicted Demand (next 30 days)</span>
+          <div class="d-flex align-items-center gap-2">
+            <label class="text-muted small mb-0">Machine ID</label>
+            <input type="number" class="form-control form-control-sm" id="sp-machine-id" placeholder="Machine ID" value="{{ default_machine_id or '' }}">
+            <button class="btn btn-sm btn-primary" id="sp-refresh">Refresh</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table mb-0" id="sp-demand-table">
+            <thead>
+              <tr>
+                <th>Part</th>
+                <th>Code</th>
+                <th>Recommended Qty</th>
+                <th>Stock</th>
+                <th>Risk</th>
+                <th>Cost</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card mb-3">
+        <div class="card-header">Inventory Risk</div>
+        <div class="card-body">
+          <canvas id="sp-risk-chart" height="220"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">Recommendation Summary</div>
+        <div class="card-body" id="sp-summary"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  window.ACCESS_TOKEN = "{{ access_token }}";
+  window.DEFAULT_MACHINE_ID = {{ default_machine_id|default('null') }};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/spare_parts.js') }}"></script>
+{% endblock %}

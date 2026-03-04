@@ -15,15 +15,29 @@ def _get_ip_address() -> Optional[str]:
     return request.remote_addr
 
 
-def log_action(action: str, entity_type: str, entity_id: int, old_value=None, new_value=None) -> None:
+def log_action(
+    action: str,
+    entity_type: str,
+    entity_id: int,
+    old_value=None,
+    new_value=None,
+    company_id: int | None = None,
+    plant_id: int | None = None,
+    action_type: str | None = None,
+) -> None:
     """Persist an audit log entry without committing the transaction."""
     user_id = current_user.id if has_request_context() and current_user.is_authenticated else None
+    company_val = company_id or (current_user.company_id if has_request_context() and current_user.is_authenticated else None)
     log_entry = AuditLog(
         user_id=user_id,
+        company_id=company_val,
+        plant_id=plant_id,
         action=action,
+        action_type=action_type or action,
         entity_type=entity_type,
         entity_id=entity_id,
         old_value=old_value,
+        previous_value=old_value,
         new_value=new_value,
         timestamp=datetime.utcnow(),
         ip_address=_get_ip_address(),

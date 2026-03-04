@@ -9,6 +9,20 @@
     <a href="{{ url_for('machines.machine_detail', machine_id=machine.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back to machine</a>
 </div>
 
+<style>
+    .chart-box {
+        position: relative;
+        height: 260px;
+        min-height: 220px;
+    }
+
+    .chart-box canvas {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
+    }
+</style>
+
 <div class="card shadow-sm mb-4">
     <div class="card-body">
         <div class="row g-3 align-items-end">
@@ -47,7 +61,9 @@
                     <h6 class="text-uppercase text-muted small mb-0">Temperature Trend</h6>
                     <span class="badge bg-light text-dark" id="temp-points">0 pts</span>
                 </div>
-                <canvas id="temp-chart" height="220"></canvas>
+                <div class="chart-box">
+                    <canvas id="temp-chart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -58,7 +74,9 @@
                     <h6 class="text-uppercase text-muted small mb-0">Vibration Trend</h6>
                     <span class="badge bg-light text-dark" id="vib-points">0 pts</span>
                 </div>
-                <canvas id="vibration-chart" height="220"></canvas>
+                <div class="chart-box">
+                    <canvas id="vibration-chart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -69,7 +87,9 @@
                     <h6 class="text-uppercase text-muted small mb-0">Energy Consumption (kWh)</h6>
                     <span class="badge bg-light text-dark" id="energy-points">0 bars</span>
                 </div>
-                <canvas id="energy-chart" height="220"></canvas>
+                <div class="chart-box">
+                    <canvas id="energy-chart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -80,7 +100,9 @@
                     <h6 class="text-uppercase text-muted small mb-0">Runtime vs Idle</h6>
                     <span class="badge bg-light text-dark" id="runtime-label">0h / 0h</span>
                 </div>
-                <canvas id="runtime-chart" height="220"></canvas>
+                <div class="chart-box">
+                    <canvas id="runtime-chart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -89,7 +111,6 @@
 
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
 <script>
     window.analyticsConfig = {
         machineId: {{ machine.id }},
@@ -97,4 +118,5 @@
         endDate: "{{ end_date.isoformat() }}",
     };
 </script>
+<script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
 {% endblock %}

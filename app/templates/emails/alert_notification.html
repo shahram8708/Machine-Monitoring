@@ -1,0 +1,54 @@
+{% extends 'emails/base.html' %}
+{% set subject = subject %}
+{% block content %}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+    <tr>
+      <td style="padding:0 0 14px 0; font-size:14px; color:#1f2937;">A new alert requires your attention.</td>
+    </tr>
+    <tr>
+      <td style="background-color:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:16px 18px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-size:13px; color:#6b7280; padding-bottom:6px;">Machine</td>
+            <td align="right" style="font-size:13px; color:#6b7280; padding-bottom:6px;">Severity</td>
+          </tr>
+          <tr>
+            <td style="font-size:16px; color:#0f172a; font-weight:700;">{{ machine_name or ('Machine #' ~ machine_id) }}</td>
+            <td align="right" style="font-size:14px; font-weight:700; color:#b91c1c;">{{ severity or 'CRITICAL' }}</td>
+          </tr>
+          <tr>
+            <td colspan="2" style="padding-top:10px; font-size:14px; color:#1f2937; line-height:1.5;">{{ message }}</td>
+          </tr>
+          {% if metrics %}
+          <tr>
+            <td colspan="2" style="padding-top:12px;">
+              <table role="presentation" width="100%" style="border-collapse:collapse;">
+                {% for label, value in metrics.items() %}
+                <tr>
+                  <td style="padding:6px 0; font-size:13px; color:#6b7280;">{{ label }}</td>
+                  <td align="right" style="padding:6px 0; font-size:13px; color:#0f172a; font-weight:600;">{{ value }}</td>
+                </tr>
+                {% endfor %}
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:18px 0 6px 0;">
+        <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;">
+          <tr>
+            <td align="center" bgcolor="#0f172a" style="border-radius:8px;">
+              <a href="{{ action_url or '#' }}" style="display:inline-block; padding:12px 18px; font-size:14px; color:#ffffff; text-decoration:none; font-weight:600; letter-spacing:0.2px;">View Alert Dashboard</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="font-size:12px; color:#6b7280; padding-top:8px;">Triggered at {{ triggered_at }} | Plant: {{ plant_name or 'N/A' }}</td>
+    </tr>
+  </table>
+{% endblock %}

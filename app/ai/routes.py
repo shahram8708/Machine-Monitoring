@@ -1,10 +1,11 @@
 from flask import jsonify, render_template
 from flask_login import current_user, login_required
+from flask_jwt_extended import create_access_token
 
 from app.decorators import role_required
 from app.models.ai_analysis import AiAnalysis
 from app.models.machine import Machine
-from app.security import get_active_company_id
+from app.security import get_active_company_id, dev_show_all_data_enabled
 from app.utils.markdown_renderer import render_markdown
 from . import ai_bp
 
@@ -52,4 +53,25 @@ def ai_latest(machine_id: int):
             "timestamp": latest.timestamp.isoformat() if latest.timestamp else None,
             "created_at": latest.created_at.isoformat() if latest.created_at else None,
         }
+    )
+
+
+@ai_bp.route("/dashboard")
+@login_required
+@role_required("ADMIN", "MANAGER", "VIEWER", "PLANT_MANAGER", "MAINTENANCE_HEAD", "TECHNICIAN", "SUPER_ADMIN", "ENTERPRISE_ADMIN")
+def ai_dashboard():
+    company_id = get_active_company_id() or current_user.company_id
+    machines_query = Machine.query.filter_by(company_id=company_id)
+    if not dev_show_all_data_enabled():
+        role = (current_user.active_role or current_user.role or "").upper()
+        if role not in {"SUPER_ADMIN", "ENTERPRISE_ADMIN", "ADMIN"}:
+            mapping_ids = {m.plant_id for m in current_user.plant_mappings}
+            machines_query = machines_query.filter(Machine.plant_id.in_(mapping_ids))
+    machines = machines_query.order_by(Machine.machine_name.asc()).all()
+    access_token = create_access_token(identity=str(current_user.id))
+    return render_template(
+        "dashboard/ai_dashboard.html",
+        machines=machines,
+        access_token=access_token,
+        active_company_id=company_id,
     )

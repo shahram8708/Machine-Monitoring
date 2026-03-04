@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% block title %}Digital Twin • {{ machine.machine_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-0">Digital Twin</h2>
+        <p class="text-muted mb-0">Live vs simulated performance for {{ machine.machine_name }}</p>
+    </div>
+    <div class="text-end">
+        <div class="small text-muted">Plant</div>
+        <div class="fw-semibold">{{ machine.plant.name if machine.plant else 'N/A' }}</div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted">Baseline OEE</span>
+                    <span class="badge bg-primary" id="baseline-oee">--</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted">Health Score</span>
+                    <span class="badge bg-success" id="baseline-health">--</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted">Failure Prob.</span>
+                    <span class="badge bg-warning text-dark" id="baseline-failure">--</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Energy Eff.</span>
+                    <span class="badge bg-info text-dark" id="baseline-energy">--</span>
+                </div>
+                <button class="btn btn-outline-secondary w-100 mt-3" id="generate-baseline">Regenerate Baseline</button>
+                <div class="text-muted small mt-2" id="baseline-updated">Last updated: --</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="mb-3">Simulation Parameters</h6>
+                <form id="simulation-form" class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label small">Load %</label>
+                        <input type="number" class="form-control" name="load_pct" min="-50" max="200" step="1" value="10">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small">Production %</label>
+                        <input type="number" class="form-control" name="production_pct" min="-25" max="200" step="1" value="15">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small">Sensor Drift %</label>
+                        <input type="number" class="form-control" name="sensor_drift_pct" min="-50" max="100" step="1" value="5">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small">Manual Risk</label>
+                        <input type="number" class="form-control" name="manual_risk_adjustment" min="-50" max="50" step="1" value="0">
+                    </div>
+                    <div class="col-12 d-flex justify-content-end gap-2 mt-2">
+                        <button type="submit" class="btn btn-primary" id="run-simulation">Run Simulation</button>
+                    </div>
+                </form>
+                <div class="alert alert-info mt-3 mb-0" id="simulation-status">Awaiting simulation...</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="mb-3">What-If AI Explanation</h6>
+                <p class="text-muted mb-1"><strong>Strategic Risk:</strong> <span id="ai-risk">--</span></p>
+                <p class="text-muted mb-1"><strong>Long-Term Impact:</strong> <span id="ai-long-term">--</span></p>
+                <p class="text-muted mb-1"><strong>Cost Impact:</strong> <span id="ai-cost">--</span></p>
+                <p class="text-muted mb-1"><strong>Recommended Action:</strong> <span id="ai-action">--</span></p>
+                <span class="badge bg-secondary" id="ai-confidence">Confidence: --</span>
+                <button class="btn btn-outline-primary w-100 mt-3" id="run-whatif">Run What-If</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mt-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Live vs Simulated Comparison</h6>
+            <span class="badge bg-dark" id="last-refresh">--</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Live</th>
+                        <th>Simulated</th>
+                        <th>Difference</th>
+                    </tr>
+                </thead>
+                <tbody id="comparison-table">
+                    <tr><td colspan="4" class="text-center text-muted">No data yet</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mt-1">
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="mb-3">Risk Impact Visualization</h6>
+                <canvas id="risk-chart" height="240"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="mb-3">Simulation History</h6>
+                <div class="table-responsive" style="max-height:320px; overflow:auto;">
+                    <table class="table table-sm mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>When</th>
+                                <th>Type</th>
+                                <th>Risk Δ</th>
+                                <th>Impact</th>
+                                <th>AI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table">
+                            <tr><td colspan="5" class="text-center text-muted">No history</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+window.ACCESS_TOKEN = {{ access_token|tojson }};
+window.digitalTwinConfig = {
+    machineId: {{ machine.id }},
+    endpoints: {
+        twin: "{{ url_for('api.get_twin', machine_id=machine.id) }}",
+        baseline: "{{ url_for('api.generate_baseline_api', machine_id=machine.id) }}",
+        simulate: "{{ url_for('api.simulate_twin', machine_id=machine.id) }}",
+        history: "{{ url_for('api.twin_history', machine_id=machine.id) }}",
+        whatif: "{{ url_for('api.twin_what_if', machine_id=machine.id) }}",
+        kpi: "{{ url_for('api.machine_kpi_api', machine_id=machine.id) }}",
+        health: "{{ url_for('api.machine_health_api', machine_id=machine.id) }}",
+        prediction: "{{ url_for('api.prediction_latest', machine_id=machine.id) }}",
+    }
+};
+</script>
+<script src="{{ url_for('static', filename='js/digital_twin.js') }}"></script>
+{% endblock %}

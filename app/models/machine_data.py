@@ -7,6 +7,7 @@ class MachineData(db.Model):
     __tablename__ = "machine_data"
     __table_args__ = (
         db.Index("ix_machine_data_machine_ts", "machine_id", "timestamp"),
+        db.Index("ix_machine_data_machine_created", "machine_id", "created_at"),
     )
 
     id = db.Column(db.Integer, primary_key=True)

@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}RCA Dashboard{% endblock %}
+{% block content %}
+<div class="container-fluid" id="rca-page">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+      <h2 class="mb-1">Root Cause Analysis</h2>
+      <p class="text-muted mb-0">Latest RCA incidents, probability breakdowns, and contributing factors.</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+      <select class="form-select form-select-sm" id="machine-select">
+        <option value="">Select machine</option>
+        {% for m in machines or [] %}
+        <option value="{{ m.id }}">{{ m.machine_name }} (ID {{ m.id }})</option>
+        {% endfor %}
+      </select>
+      <input type="number" class="form-control form-control-sm" placeholder="Alert group ID" id="group-id">
+      <input type="date" class="form-control form-control-sm" id="rca-start-date">
+      <input type="date" class="form-control form-control-sm" id="rca-end-date">
+      <button class="btn btn-outline-secondary btn-sm" id="rca-apply">Load</button>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Primary Root Cause</div>
+          <h5 class="mb-0" id="primary-root-cause">--</h5>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Confidence</div>
+          <span class="badge bg-info" id="confidence-score">--</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Escalation</div>
+          <span class="badge bg-secondary" id="escalation-status">--</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Last Updated</div>
+          <div id="rca-updated" class="text-muted">--</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="mb-2">Root Cause Distribution</h6>
+          <div class="position-relative" style="min-height:240px;">
+            <div class="spinner-border text-primary position-absolute top-50 start-50 translate-middle" id="rca-dist-spinner" role="status"></div>
+            <canvas id="rca-pie" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="mb-2">Probability Breakdown</h6>
+          <div class="position-relative" style="min-height:240px;">
+            <div class="spinner-border text-primary position-absolute top-50 start-50 translate-middle" id="rca-prob-spinner" role="status"></div>
+            <canvas id="probability-chart" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="mb-2">Contributing Factors</h6>
+          <ul class="list-group list-group-flush" id="factors-list"></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-7">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="mb-3">Recent RCA Incidents</h6>
+          <div class="table-responsive">
+            <table class="table mb-0" id="rca-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Machine</th>
+                  <th>Cause</th>
+                  <th>Confidence</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="rca-table-body">
+                <tr id="rca-empty"><td colspan="5" class="text-center text-muted">No RCA records.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-5">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="mb-3">Timeline</h6>
+          <div class="timeline" id="timeline-view"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-danger d-none mt-3" id="rca-error"></div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+window.RCA_CONFIG = {
+  accessToken: {{ access_token|tojson }},
+  companyId: {{ company_id|default(0)|int }},
+  endpoints: {
+    machine: "{{ url_for('api.latest_rca', machine_id=0) }}",
+    group: "{{ url_for('api.rca_by_group', alert_group_id=0) }}",
+    alerts: "{{ url_for('api.list_alerts_api') }}"
+  }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/rca_dashboard.js') }}"></script>
+{% endblock %}

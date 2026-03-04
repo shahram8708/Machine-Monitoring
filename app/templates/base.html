@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    {% block styles %}{% endblock %}
 </head>
 <body>
     <div class="d-flex" id="wrapper">
@@ -17,18 +18,179 @@
                     <div class="text-muted small">{{ active_company.company_name }}</div>
                 {% endif %}
             </div>
+            {% set user_role = (current_user.active_role or current_user.role or '')|lower if current_user.is_authenticated else '' %}
+            {% set primary_mapping = current_user.plant_mappings.first() if current_user.is_authenticated else None %}
+            {% set sample_machine = current_user.company.machines|first if current_user.is_authenticated and current_user.company and current_user.company.machines is not none else None %}
+
             <ul class="nav flex-column mt-3">
                 <li class="nav-item">
                     <a class="nav-link text-white" href="{{ url_for('main.dashboard') }}">
                         <i class="bi bi-speedometer2 me-2"></i>Dashboard
                     </a>
                 </li>
+
                 {% if current_user.is_authenticated %}
+                {% if user_role in ['admin', 'super_admin', 'enterprise_admin'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('main.ceo_dashboard') }}">
+                        <i class="bi bi-graph-up-arrow me-2"></i>CEO Dashboard
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if primary_mapping and user_role in ['plant_manager', 'admin', 'super_admin', 'enterprise_admin'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('main.plant_dashboard', plant_id=primary_mapping.plant_id) }}">
+                        <i class="bi bi-building-gear me-2"></i>Plant Dashboard
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if user_role in ['maintenance_head', 'admin', 'super_admin', 'enterprise_admin'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('main.maintenance_dashboard') }}">
+                        <i class="bi bi-wrench-adjustable-circle me-2"></i>Maintenance
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if user_role in ['technician', 'maintenance_head', 'admin', 'super_admin', 'enterprise_admin'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('main.technician_dashboard') }}">
+                        <i class="bi bi-tools me-2"></i>Technician
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if user_role in ['technician', 'maintenance_head', 'plant_manager', 'admin', 'super_admin', 'enterprise_admin', 'manager'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('main.rca_dashboard_view') }}">
+                        <i class="bi bi-signpost me-2"></i>RCA Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('main.alert_analytics_dashboard') }}">
+                        <i class="bi bi-activity me-2"></i>Alert Analytics
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if user_role in ['technician', 'maintenance_head', 'plant_manager', 'admin', 'super_admin', 'enterprise_admin', 'manager', 'viewer'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('main.spare_parts_dashboard') }}">
+                        <i class="bi bi-gear-wide-connected me-2"></i>Spare Parts
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if user_role in ['maintenance_head', 'plant_manager', 'admin', 'super_admin', 'enterprise_admin', 'manager'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('main.workforce_dashboard') }}">
+                        <i class="bi bi-people-fill me-2"></i>Workforce
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if user_role in ['plant_manager', 'admin', 'super_admin', 'enterprise_admin', 'manager'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('main.financial_dashboard') }}">
+                        <i class="bi bi-currency-dollar me-2"></i>Financial
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if user_role in ['technician', 'maintenance_head', 'plant_manager', 'admin', 'super_admin', 'enterprise_admin', 'manager', 'viewer'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('main.esg_dashboard') }}">
+                        <i class="bi bi-globe2 me-2"></i>ESG & Energy
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if user_role in ['admin', 'super_admin', 'enterprise_admin', 'manager', 'plant_manager'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('main.advanced_reports_dashboard') }}">
+                        <i class="bi bi-file-earmark-bar-graph me-2"></i>Advanced Reports
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if user_role in ['admin', 'super_admin', 'enterprise_admin'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('main.subscription_dashboard') }}">
+                        <i class="bi bi-credit-card-2-front me-2"></i>Subscription
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if user_role in ['super_admin', 'enterprise_admin'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('admin.users') }}">
+                        <i class="bi bi-people-fill me-2"></i>User Management
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if user_role in ['admin', 'manager', 'viewer'] %}
                 <li class="nav-item">
                     <a class="nav-link text-white" href="{{ url_for('machines.list_machines') }}">
                         <i class="bi bi-cpu me-2"></i>Machines
                     </a>
                 </li>
+                {% if user_role in ['admin', 'manager'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('machines.create_machine') }}">
+                        <i class="bi bi-plus-square me-2"></i>Add Machine
+                    </a>
+                </li>
+                {% endif %}
+                {% endif %}
+
+                {% if user_role in ['admin', 'manager', 'viewer', 'plant_manager', 'maintenance_head', 'technician', 'super_admin', 'enterprise_admin'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('ai.ai_dashboard') }}">
+                        <i class="bi bi-robot me-2"></i>AI Predictive
+                    </a>
+                </li>
+                {% if sample_machine %}
+                {% if user_role in ['admin', 'manager', 'viewer'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('analytics.analytics_dashboard', machine_id=sample_machine.id) }}">
+                        <i class="bi bi-graph-up me-2"></i>Machine Analytics
+                    </a>
+                </li>
+                {% endif %}
+                {% if user_role in ['technician', 'maintenance_head', 'plant_manager', 'admin', 'super_admin', 'enterprise_admin', 'manager', 'viewer'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('main.digital_twin_dashboard', machine_id=sample_machine.id) }}">
+                        <i class="bi bi-diagram-3 me-2"></i>Digital Twin
+                    </a>
+                </li>
+                {% endif %}
+                {% if user_role in ['admin', 'manager', 'viewer'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('ai.ai_insights', machine_id=sample_machine.id) }}">
+                        <i class="bi bi-lightbulb me-2"></i>AI Insights
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('machines.machine_live', machine_id=sample_machine.id) }}">
+                        <i class="bi bi-activity me-2"></i>Machine Live
+                    </a>
+                </li>
+                {% endif %}
+                {% endif %}
+                {% endif %}
+
+                {% if user_role in ['admin', 'manager', 'viewer', 'super_admin', 'enterprise_admin'] %}
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{{ url_for('analytics.advanced_analytics_page') }}">
+                        <i class="bi bi-bezier2 me-2"></i>Advanced Analytics
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if user_role in ['admin', 'manager', 'viewer'] %}
                 <li class="nav-item">
                     <a class="nav-link text-white" href="{{ url_for('alerts.list_alerts') }}">
                         <i class="bi bi-bell me-2"></i>Alerts
@@ -39,31 +201,41 @@
                         <i class="bi bi-file-earmark-text me-2"></i>Reports
                     </a>
                 </li>
-                {% if current_user.role == 'admin' %}
+                {% endif %}
+
+                {% if user_role in ['admin'] %}
                 <li class="nav-item">
                     <a class="nav-link text-white" href="{{ url_for('main.audit_history') }}">
                         <i class="bi bi-clipboard-data me-2"></i>Audit History
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="{{ url_for('admin.users') }}">
-                        <i class="bi bi-people me-2"></i>Admin
+                {% endif %}
+
+                <li class="nav-item mt-2">
+                    <a class="nav-link text-white" href="{{ url_for('main.contact_sales') }}">
+                        <i class="bi bi-envelope-paper me-2"></i>Contact Sales
                     </a>
                 </li>
-                {% endif %}
                 {% endif %}
             </ul>
         </nav>
 
+        <div id="sidebar-backdrop" class="sidebar-backdrop d-lg-none"></div>
+
         <div id="page-content" class="flex-grow-1">
             <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
                 <div class="container-fluid">
-                    <span class="navbar-brand fw-semibold">SaaS Control Panel</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-outline-secondary d-lg-none" id="sidebarToggle" type="button" aria-label="Toggle navigation">
+                            <i class="bi bi-list"></i>
+                        </button>
+                        <span class="navbar-brand fw-semibold mb-0">SaaS Control Panel</span>
+                    </div>
                     <ul class="navbar-nav ms-auto align-items-center gap-3 flex-row">
                         {% if current_user.is_authenticated and current_user.is_admin and company_options %}
                         <li class="nav-item">
                             <form class="d-flex align-items-center gap-2" method="post" id="company-switcher" data-action-template="{{ url_for('main.switch_company', company_id=0) }}">
-                                <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <label class="text-muted small mb-0">Company</label>
                                 <select class="form-select form-select-sm" name="company_id" onchange="this.form.action=this.dataset.actionTemplate.replace('0', this.value); this.form.submit();">
                                     {% for company in company_options %}
@@ -93,7 +265,7 @@
                                     </div>
                                     {% if current_user.role in ['admin','manager'] %}
                                     <form method="post" action="{{ url_for('alerts.resolve', alert_id=alert.id) }}" class="mt-2">
-                                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button class="btn btn-sm btn-outline-success w-100">Mark resolved</button>
                                     </form>
                                     {% endif %}
@@ -143,6 +315,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    {% block extra_scripts %}{% endblock %}
+    {% block scripts %}
+        {% block extra_scripts %}{% endblock %}
+    {% endblock %}
 </body>
 </html>

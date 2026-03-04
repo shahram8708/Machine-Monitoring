@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Machines | Machine Monitoring{% endblock %}
 {% block content %}
+{% set user_role = (current_user.active_role or current_user.role or '')|lower %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h4 class="mb-0">Machines</h4>
@@ -11,7 +12,7 @@
             <input type="search" name="q" class="form-control" placeholder="Search machines" value="{{ search }}">
             <button class="btn btn-outline-secondary ms-2" type="submit"><i class="bi bi-search"></i></button>
         </form>
-        {% if current_user.role in ['admin', 'manager'] %}
+        {% if user_role in ['admin', 'manager'] %}
         <a class="btn btn-primary" href="{{ url_for('machines.create_machine') }}">
             <i class="bi bi-plus-lg me-1"></i>Add Machine
         </a>
@@ -54,12 +55,12 @@
                             <a class="btn btn-outline-success" href="{{ url_for('ai.ai_insights', machine_id=machine.id) }}" title="AI Insights">
                                 <i class="bi bi-robot"></i>
                             </a>
-                            {% if current_user.role in ['admin', 'manager'] %}
+                            {% if user_role in ['admin', 'manager'] %}
                             <a class="btn btn-outline-primary" href="{{ url_for('machines.edit_machine', machine_id=machine.id) }}" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
                             {% endif %}
-                            {% if current_user.role == 'admin' %}
+                            {% if user_role == 'admin' %}
                             <form method="post" action="{{ url_for('machines.delete_machine', machine_id=machine.id) }}" onsubmit="return confirm('Delete this machine? Sensors will be removed.');">
                                 <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                 <button class="btn btn-outline-danger" type="submit" title="Delete">

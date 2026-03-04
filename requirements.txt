@@ -9,9 +9,13 @@ gunicorn
 APScheduler
 google-genai
 Flask-Mail
+Flask-JWT-Extended
+psycopg2-binary
 reportlab
 requests
 requests
 markdown
 bleach
 email-validator
+openpyxl
+razorpay

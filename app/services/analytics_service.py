@@ -8,12 +8,6 @@ from app.extensions import db
 from app.models.machine_data import MachineData
 from app.models.machine_stats import MachineDailyStat, MachineHourlyStat
 
-RETENTION_DAYS = 90
-
-
-def _cutoff_dt() -> datetime:
-    return datetime.utcnow() - timedelta(days=RETENTION_DAYS)
-
 
 def _default_duration_seconds(current_ts: datetime, next_ts: Optional[datetime]) -> float:
     if next_ts is None:
@@ -112,14 +106,13 @@ def _series_from_hourly(stats: Iterable[MachineHourlyStat], field: str) -> List[
 
 
 def get_temperature_trend(machine_id: int, start_date: datetime, end_date: datetime) -> List[Dict[str, float]]:
-    cutoff = _cutoff_dt()
-    if start_date >= cutoff:
-        records = (
-            MachineData.query.filter_by(machine_id=machine_id)
-            .filter(MachineData.timestamp >= start_date, MachineData.timestamp <= end_date)
-            .order_by(MachineData.timestamp.asc())
-            .all()
-        )
+    records = (
+        MachineData.query.filter_by(machine_id=machine_id)
+        .filter(MachineData.timestamp >= start_date, MachineData.timestamp <= end_date)
+        .order_by(MachineData.timestamp.asc())
+        .all()
+    )
+    if records:
         return _temperature_series_from_raw(records)
 
     stats = (
@@ -131,7 +124,7 @@ def get_temperature_trend(machine_id: int, start_date: datetime, end_date: datet
     if stats:
         return _series_from_hourly(stats, "temperature_avg")
 
-    # Fallback to daily stats if hourly is unavailable
+    # Fallback to daily stats if neither raw nor hourly data is present
     daily_stats = (
         MachineDailyStat.query.filter_by(machine_id=machine_id)
         .filter(MachineDailyStat.period_date >= start_date.date(), MachineDailyStat.period_date <= end_date.date())
@@ -146,14 +139,13 @@ def get_temperature_trend(machine_id: int, start_date: datetime, end_date: datet
 
 
 def get_vibration_trend(machine_id: int, start_date: datetime, end_date: datetime) -> List[Dict[str, float]]:
-    cutoff = _cutoff_dt()
-    if start_date >= cutoff:
-        records = (
-            MachineData.query.filter_by(machine_id=machine_id)
-            .filter(MachineData.timestamp >= start_date, MachineData.timestamp <= end_date)
-            .order_by(MachineData.timestamp.asc())
-            .all()
-        )
+    records = (
+        MachineData.query.filter_by(machine_id=machine_id)
+        .filter(MachineData.timestamp >= start_date, MachineData.timestamp <= end_date)
+        .order_by(MachineData.timestamp.asc())
+        .all()
+    )
+    if records:
         return _vibration_series_from_raw(records)
 
     stats = (
@@ -179,14 +171,13 @@ def get_vibration_trend(machine_id: int, start_date: datetime, end_date: datetim
 
 
 def get_energy_consumption(machine_id: int, start_date: datetime, end_date: datetime) -> List[Dict[str, float]]:
-    cutoff = _cutoff_dt()
-    if start_date >= cutoff:
-        records = (
-            MachineData.query.filter_by(machine_id=machine_id)
-            .filter(MachineData.timestamp >= start_date, MachineData.timestamp <= end_date)
-            .order_by(MachineData.timestamp.asc())
-            .all()
-        )
+    records = (
+        MachineData.query.filter_by(machine_id=machine_id)
+        .filter(MachineData.timestamp >= start_date, MachineData.timestamp <= end_date)
+        .order_by(MachineData.timestamp.asc())
+        .all()
+    )
+    if records:
         return _energy_series_from_raw(records)
 
     stats = (
@@ -202,14 +193,13 @@ def get_energy_consumption(machine_id: int, start_date: datetime, end_date: date
 
 
 def get_runtime_stats(machine_id: int, start_date: datetime, end_date: datetime) -> Dict[str, float]:
-    cutoff = _cutoff_dt()
-    if start_date >= cutoff:
-        records = (
-            MachineData.query.filter_by(machine_id=machine_id)
-            .filter(MachineData.timestamp >= start_date, MachineData.timestamp <= end_date)
-            .order_by(MachineData.timestamp.asc())
-            .all()
-        )
+    records = (
+        MachineData.query.filter_by(machine_id=machine_id)
+        .filter(MachineData.timestamp >= start_date, MachineData.timestamp <= end_date)
+        .order_by(MachineData.timestamp.asc())
+        .all()
+    )
+    if records:
         return _aggregate_runtime_from_raw(records)
 
     stats = (
@@ -368,13 +358,6 @@ def aggregate_daily_stats(start_date: date, end_date: date) -> None:
     db.session.commit()
 
 
-def purge_raw_data_older_than(days: int = RETENTION_DAYS) -> int:
-    cutoff = datetime.utcnow() - timedelta(days=days)
-    deleted = MachineData.query.filter(MachineData.timestamp < cutoff).delete(synchronize_session=False)
-    db.session.commit()
-    return deleted
-
-
 def run_nightly_aggregation(app) -> None:
     with app.app_context():
         now = datetime.utcnow()
@@ -383,4 +366,3 @@ def run_nightly_aggregation(app) -> None:
         end_dt = now.replace(minute=0, second=0, microsecond=0)
         aggregate_hourly_stats(start_dt, end_dt)
         aggregate_daily_stats(start_dt.date(), end_dt.date())
-        purge_raw_data_older_than(RETENTION_DAYS)

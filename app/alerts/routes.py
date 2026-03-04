@@ -29,7 +29,7 @@ def list_alerts():
 def resolve(alert_id: int):
     company_id = get_active_company_id()
     alert = Alert.query.filter_by(id=alert_id, company_id=company_id).first_or_404()
-    resolve_alert(alert, current_user)
+    resolve_alert(alert.id, current_user)
     flash("Alert marked as resolved.", "success")
     next_url = request.referrer or url_for("alerts.list_alerts")
     return redirect(next_url)

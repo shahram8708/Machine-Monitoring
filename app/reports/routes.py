@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from io import BytesIO
 
-from flask import render_template, send_file
+from flask import render_template, send_file, request
 from flask_login import login_required
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -27,9 +27,37 @@ def _get_machine_or_404(machine_id: int) -> Machine:
     return Machine.query.filter_by(id=machine_id, company_id=company_id).first_or_404()
 
 
-def _metric_window(days: int) -> tuple[datetime, datetime]:
-    end_dt = datetime.utcnow()
-    start_dt = end_dt - timedelta(days=days)
+def _parse_dt(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        if len(value) == 10:
+            return datetime.strptime(value, "%Y-%m-%d")
+        return datetime.fromisoformat(value)
+    except (ValueError, TypeError):
+        return None
+
+
+def _metric_window(machine: Machine, default_days: int | None = None) -> tuple[datetime, datetime]:
+    end_override = _parse_dt(request.args.get("end"))
+    start_override = _parse_dt(request.args.get("start"))
+    days_override = request.args.get("days", type=int)
+
+    end_dt = end_override or datetime.utcnow()
+    effective_days = days_override if days_override is not None else default_days
+
+    if start_override:
+        start_dt = start_override
+    elif effective_days is not None:
+        start_dt = end_dt - timedelta(days=effective_days)
+    else:
+        earliest = (
+            MachineData.query.filter_by(machine_id=machine.id)
+            .order_by(MachineData.timestamp.asc())
+            .first()
+        )
+        start_dt = earliest.timestamp if earliest else end_dt - timedelta(days=1)
+
     return start_dt, end_dt
 
 
@@ -138,8 +166,8 @@ def _render_pdf(machine: Machine, title: str, metrics: dict, start_dt: datetime,
     return buffer
 
 
-def _send_report(machine: Machine, report_name: str, days: int):
-    start_dt, end_dt = _metric_window(days)
+def _send_report(machine: Machine, report_name: str, days: int | None):
+    start_dt, end_dt = _metric_window(machine, days)
     metrics = _fetch_metrics(machine, start_dt, end_dt)
     title = f"{report_name} Report"
     pdf_buffer = _render_pdf(machine, title, metrics, start_dt, end_dt)
@@ -161,7 +189,7 @@ def reports_index():
 @role_required("admin", "manager", "viewer")
 def daily_report(machine_id: int):
     machine = _get_machine_or_404(machine_id)
-    return _send_report(machine, "Daily", 1)
+    return _send_report(machine, "Daily", None)
 
 
 @reports_bp.route("/<int:machine_id>/weekly")
@@ -169,7 +197,7 @@ def daily_report(machine_id: int):
 @role_required("admin", "manager", "viewer")
 def weekly_report(machine_id: int):
     machine = _get_machine_or_404(machine_id)
-    return _send_report(machine, "Weekly", 7)
+    return _send_report(machine, "Weekly", None)
 
 
 @reports_bp.route("/<int:machine_id>/monthly")
@@ -177,7 +205,7 @@ def weekly_report(machine_id: int):
 @role_required("admin", "manager", "viewer")
 def monthly_report(machine_id: int):
     machine = _get_machine_or_404(machine_id)
-    return _send_report(machine, "Monthly", 30)
+    return _send_report(machine, "Monthly", None)
 
 
 @reports_bp.route("/<int:machine_id>/energy")
@@ -185,4 +213,4 @@ def monthly_report(machine_id: int):
 @role_required("admin", "manager", "viewer")
 def energy_report(machine_id: int):
     machine = _get_machine_or_404(machine_id)
-    return _send_report(machine, "Energy Usage", 30)
+    return _send_report(machine, "Energy Usage", None)

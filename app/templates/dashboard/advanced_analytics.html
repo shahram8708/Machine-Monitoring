@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Advanced Analytics{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/analytics.css') }}">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+{% endblock %}
+{% block content %}
+<div class="page-shell">
+  <header class="page-header">
+    <div>
+      <h1>Advanced Industrial Analytics</h1>
+      <p>Executive-grade insights with drill-down and cross-plant intelligence.</p>
+    </div>
+    <div class="actions">
+      <button id="refresh-btn" class="btn primary">Refresh</button>
+      <button id="export-pdf" class="btn">Export PDF</button>
+      <button id="export-excel" class="btn">Export Excel</button>
+      <button id="export-json" class="btn">Export JSON</button>
+    </div>
+  </header>
+
+  <section class="filters" id="filter-panel">
+    <div class="filter-group">
+      <label>Date Range</label>
+      <div class="">
+        <input type="date" id="start-date">
+        <input type="date" id="end-date">
+      </div>
+    </div>
+    <div class="filter-group">
+      <label>Plant</label>
+      <select id="plant-select" multiple></select>
+    </div>
+    <div class="filter-group">
+      <label>Department</label>
+      <select id="department-select" multiple></select>
+    </div>
+    <div class="filter-group">
+      <label>Machine</label>
+      <select id="machine-select" multiple></select>
+    </div>
+    <div class="filter-group">
+      <label>Severity</label>
+      <select id="severity-select">
+        <option value="">All</option>
+        <option value="LOW">Low</option>
+        <option value="MEDIUM">Medium</option>
+        <option value="HIGH">High</option>
+        <option value="CRITICAL">Critical</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Risk Level</label>
+      <select id="risk-select">
+        <option value="">All</option>
+        <option value="LOW">Low</option>
+        <option value="MEDIUM">Medium</option>
+        <option value="HIGH">High</option>
+        <option value="CRITICAL">Critical</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>KPI Type</label>
+      <select id="kpi-select">
+        <option value="">All</option>
+        <option value="oee">OEE</option>
+        <option value="availability">Availability</option>
+        <option value="performance">Performance</option>
+        <option value="quality">Quality</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Comparison</label>
+      <label class="toggle">
+        <input type="checkbox" id="comparison-toggle">
+        <span>Enable</span>
+      </label>
+    </div>
+    <div class="filter-group">
+      <label>Granularity</label>
+      <select id="granularity-select">
+        <option value="hourly">Hourly</option>
+        <option value="daily" selected>Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="kpi-row" id="kpi-row">
+    <div class="kpi-card">
+      <p>Avg OEE</p>
+      <h3 id="kpi-oee">--</h3>
+      <span id="kpi-oee-trend">--</span>
+    </div>
+    <div class="kpi-card">
+      <p>Health Score</p>
+      <h3 id="kpi-health">--</h3>
+      <span id="kpi-health-trend">--</span>
+    </div>
+    <div class="kpi-card">
+      <p>Failure Probability</p>
+      <h3 id="kpi-failure">--</h3>
+      <span id="kpi-failure-trend">--</span>
+    </div>
+    <div class="kpi-card">
+      <p>Downtime (hrs)</p>
+      <h3 id="kpi-downtime">--</h3>
+      <span id="kpi-downtime-trend">--</span>
+    </div>
+  </section>
+
+  <section class="grid" id="chart-grid">
+    <div class="card"><div class="card-head"><h4>OEE vs Health vs Failure</h4><span class="updated" id="ts-updated"></span></div><canvas id="chart-line-multi"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Downtime Trend</h4></div><canvas id="chart-area"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Downtime by Cause</h4></div><canvas id="chart-stacked-area"></canvas></div>
+    <div class="card"><div class="card-head"><h4>SLA Breaches</h4></div><canvas id="chart-step"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Energy vs Output</h4></div><canvas id="chart-dual"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Failure Forecast</h4></div><canvas id="chart-forecast"></canvas></div>
+
+    <div class="card"><div class="card-head"><h4>Failure Probability Distribution</h4></div><canvas id="chart-hist"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Health Spread (Box)</h4></div><canvas id="chart-box"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Performance Variability (Violin)</h4></div><canvas id="chart-violin"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Energy Density</h4></div><canvas id="chart-density"></canvas></div>
+
+    <div class="card"><div class="card-head"><h4>Plant OEE Comparison</h4></div><canvas id="chart-grouped"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Alert Severity Breakdown</h4></div><canvas id="chart-stacked-bar"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Top Risky Machines</h4></div><canvas id="chart-horizontal"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Plant Performance Radar</h4></div><canvas id="chart-radar"></canvas></div>
+    <div class="card"><div class="card-head"><h4>KPI Spider</h4></div><canvas id="chart-spider"></canvas></div>
+
+    <div class="card"><div class="card-head"><h4>Health vs Failure Scatter</h4></div><canvas id="chart-scatter"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Risk vs Cost Bubble</h4></div><canvas id="chart-bubble"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Correlation Heatmap</h4></div><canvas id="chart-heatmap"></canvas></div>
+    <div class="card"><div class="card-head"><h4>KPI Scatter Matrix</h4></div><canvas id="chart-pairs"></canvas></div>
+
+    <div class="card"><div class="card-head"><h4>Risk Heat Grid</h4></div><canvas id="chart-risk-grid"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Company Risk Gauge</h4></div><canvas id="chart-gauge"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Risk Timeline</h4></div><canvas id="chart-ribbon"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Alert Heat Calendar</h4></div><canvas id="chart-calendar"></canvas></div>
+
+    <div class="card"><div class="card-head"><h4>Revenue Loss Trend</h4></div><canvas id="chart-revenue"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Downtime Cost Breakdown</h4></div><canvas id="chart-cost"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Cost-to-Failure Projection</h4></div><canvas id="chart-ctf"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Spare Parts Forecast</h4></div><canvas id="chart-spare"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Budget Variance Waterfall</h4></div><canvas id="chart-waterfall"></canvas></div>
+
+    <div class="card"><div class="card-head"><h4>Technician Efficiency</h4></div><canvas id="chart-tech"></canvas></div>
+    <div class="card"><div class="card-head"><h4>SLA Compliance</h4></div><canvas id="chart-sla"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Resolution Time</h4></div><canvas id="chart-resolution"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Workload Distribution</h4></div><canvas id="chart-workload"></canvas></div>
+
+    <div class="card"><div class="card-head"><h4>Energy Trend</h4></div><canvas id="chart-energy"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Efficiency Improvement</h4></div><canvas id="chart-efficiency"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Sustainability Gauge</h4></div><canvas id="chart-sustain"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Carbon Impact</h4></div><canvas id="chart-carbon"></canvas></div>
+
+    <div class="card"><div class="card-head"><h4>Failure Probability Trend</h4></div><canvas id="chart-failure"></canvas></div>
+    <div class="card"><div class="card-head"><h4>RUL Trend</h4></div><canvas id="chart-rul"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Degradation Stage</h4></div><canvas id="chart-degradation"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Anomaly Timeline</h4></div><canvas id="chart-anomaly"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Confidence Distribution</h4></div><canvas id="chart-confidence"></canvas></div>
+
+    <div class="card"><div class="card-head"><h4>Live vs Simulated</h4></div><canvas id="chart-live-sim"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Risk Delta</h4></div><canvas id="chart-risk-delta"></canvas></div>
+    <div class="card"><div class="card-head"><h4>Simulation Matrix</h4></div><canvas id="chart-sim-matrix"></canvas></div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-boxplot@4.4.0/build/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@2.0.1/dist/chartjs-chart-matrix.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="{{ url_for('static', filename='js/advanced_analytics.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,10 @@
+{{ headline or subject }}
+
+Machine: {{ machine_name or ('Machine #' ~ machine_id) }}
+Severity: {{ severity or 'CRITICAL' }}
+Plant: {{ plant_name or 'N/A' }}
+Triggered: {{ triggered_at }}
+
+{{ message }}
+
+View alert: {{ action_url or 'Dashboard' }}

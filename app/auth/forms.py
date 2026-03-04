@@ -12,7 +12,15 @@ class RegistrationForm(FlaskForm):
         "Confirm Password", validators=[DataRequired(), EqualTo("password", message="Passwords must match.")]
     )
     company_name = StringField("Company Name", validators=[DataRequired(), Length(min=2, max=120)])
-    role = SelectField("Role", choices=[("admin", "Admin"), ("manager", "Manager"), ("viewer", "Viewer")], validators=[DataRequired()])
+    role = SelectField(
+        "Role",
+        choices=[
+            ("ENTERPRISE_ADMIN", "Enterprise Admin"),
+            ("PLANT_MANAGER", "Plant Manager"),
+            ("VIEWER", "Viewer"),
+        ],
+        validators=[DataRequired()],
+    )
     submit = SubmitField("Create Account")
 
     def validate_email(self, field):

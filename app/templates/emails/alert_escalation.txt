@@ -1,0 +1,11 @@
+{{ headline or subject }}
+
+Machine: {{ machine_name or ('Machine #' ~ machine_id) }}
+Escalation Level: {{ escalation_level }}
+Status: {{ status or 'ESCALATED' }}
+Plant: {{ plant_name or 'N/A' }}
+When: {{ triggered_at }}
+
+{{ message }}
+
+Review: {{ action_url or 'Dashboard' }}

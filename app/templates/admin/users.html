@@ -4,18 +4,72 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h4 class="mb-0">User Administration</h4>
-        <p class="text-muted small mb-0">Manage roles and access across factories.</p>
+        <p class="text-muted small mb-0">Seat-governed onboarding with CSV import.</p>
     </div>
-    <div class="d-flex gap-2">
-        <form class="d-flex" method="get">
-            <select name="company_id" class="form-select" onchange="this.form.submit()">
-                <option value="">All companies</option>
-                {% for company in companies %}
-                <option value="{{ company.id }}" {% if company_filter==company.id %}selected{% endif %}>{{ company.company_name }}</option>
-                {% endfor %}
-            </select>
-        </form>
-        <a href="{{ url_for('admin.create_user') }}" class="btn btn-primary"><i class="bi bi-person-plus me-1"></i>Create User</a>
+    <form class="d-flex" method="get">
+        <select name="company_id" class="form-select" onchange="this.form.submit()">
+            {% for company in companies %}
+            <option value="{{ company.id }}" {% if company_filter==company.id %}selected{% endif %}>{{ company.company_name }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<div class="alert alert-warning d-flex justify-content-between align-items-center" role="alert">
+    <div>
+        <strong>Seats:</strong> {{ seat_usage.used }} / {{ seat_usage.limit }} in use. <span class="text-muted">Free tier covers 5 seats. Add seats via billing to continue.</span>
+    </div>
+    {% if seat_usage.available <= 1 %}
+    <span class="badge bg-danger">Near limit</span>
+    {% else %}
+    <span class="badge bg-success">{{ seat_usage.available }} seats free</span>
+    {% endif %}
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-xl-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">Manual User Creation</h6>
+                    <span class="text-muted small">Password auto-set to username</span>
+                </div>
+                <form method="post" novalidate>
+                    {{ create_form.hidden_tag() }}
+                    <div class="row g-2">
+                        <div class="col-md-6">{{ create_form.username.label(class_='form-label') }}{{ create_form.username(class_='form-control', placeholder='username') }}{% for e in create_form.username.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+                        <div class="col-md-6">{{ create_form.email.label(class_='form-label') }}{{ create_form.email(class_='form-control', placeholder='name@company.com') }}{% for e in create_form.email.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+                        <div class="col-md-4">{{ create_form.role.label(class_='form-label') }}{{ create_form.role(class_='form-select') }}</div>
+                        <div class="col-md-4">{{ create_form.company_id.label(class_='form-label') }}{{ create_form.company_id(class_='form-select') }}</div>
+                        <div class="col-md-4">{{ create_form.plant_id.label(class_='form-label') }}{{ create_form.plant_id(class_='form-select') }}</div>
+                    </div>
+                    <div class="mt-3 d-flex justify-content-end">{{ create_form.submit_create(class_='btn btn-primary') }}</div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">Bulk CSV Upload</h6>
+                    <a class="btn btn-link btn-sm" href="data:text/csv;charset=utf-8,username,email,role%0Arahul.sharma,rahul@company.com,TECHNICIAN%0Aneha.singh,neha@company.com,PLANT_MANAGER" download="sample_users.csv">Download sample</a>
+                </div>
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {{ csv_form.hidden_tag() }}
+                    <div class="row g-2">
+                        <div class="col-md-6">{{ csv_form.company_id.label(class_='form-label') }}{{ csv_form.company_id(class_='form-select') }}</div>
+                        <div class="col-md-6">{{ csv_form.file.label(class_='form-label') }}{{ csv_form.file(class_='form-control') }}{% for e in csv_form.file.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+                    </div>
+                    <div class="mt-3 d-flex justify-content-end">{{ csv_form.submit_upload(class_='btn btn-outline-primary') }}</div>
+                </form>
+                {% if import_summary %}
+                <div class="alert alert-info mt-3 mb-0">
+                    Created: {{ import_summary.created }}, Skipped: {{ import_summary.skipped }}, Failed: {{ import_summary.failed }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 
@@ -52,7 +106,7 @@
                         <div class="btn-group btn-group-sm" role="group">
                             <a class="btn btn-outline-primary" href="{{ url_for('admin.edit_user', user_id=user.id) }}"><i class="bi bi-pencil"></i></a>
                             <form method="post" action="{{ url_for('admin.deactivate_user', user_id=user.id) }}" onsubmit="return confirm('Deactivate this user?');">
-                                <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button class="btn btn-outline-danger" type="submit"><i class="bi bi-person-dash"></i></button>
                             </form>
                         </div>

@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}Plant Dashboard{% endblock %}
+{% block content %}
+<div class="row g-3" id="dashboard-plant" data-plant="{{ plant.id }}">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">Plant {{ plant.name }} ({{ plant.plant_code }})</h4>
+        <span class="badge bg-info">Plant Manager View</span>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Plant OEE</div>
+                <h3 class="mb-1" id="plant-oee">--</h3>
+                <div class="text-muted small">Availability × Performance × Quality</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Utilization</div>
+                <h3 class="mb-1" id="plant-utilization">--</h3>
+                <div class="text-muted small">Running time vs planned.</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Downtime Minutes</div>
+                <h3 class="mb-1" id="plant-downtime">--</h3>
+                <div class="text-muted small">Today</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Health Distribution</div>
+                <h3 class="mb-1" id="plant-health-count">--</h3>
+                <div class="text-muted small">Risk levels across machines.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Machine Ranking (OEE)</h6>
+                    <span class="text-muted small">Top performers</span>
+                </div>
+                <canvas id="plant-machine-ranking"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Health Distribution</h6>
+                    <span class="text-muted small">Latest</span>
+                </div>
+                <canvas id="plant-health-pie"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Downtime Trend</h6>
+                    <span class="text-muted small">Last 30 days</span>
+                </div>
+                <canvas id="plant-downtime-trend"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+window.dashboardConfig = {
+    mode: "plant",
+    plantId: {{ plant.id }},
+    endpoints: {
+        kpi: "/api/v1/kpi/plant/{{ plant.id }}",
+        health: "/api/v1/health/plant/{{ plant.id }}",
+        comparison: "/api/v1/comparison/machines"
+    },
+    pollInterval: 25000
+};
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

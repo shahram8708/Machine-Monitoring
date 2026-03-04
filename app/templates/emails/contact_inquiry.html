@@ -1,0 +1,52 @@
+{% extends 'emails/base.html' %}
+{% block content %}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+    <tr>
+      <td style="background-color:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:16px 18px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-size:13px; color:#6b7280; padding-bottom:6px;">Contact</td>
+            <td align="right" style="font-size:13px; color:#6b7280; padding-bottom:6px;">Category</td>
+          </tr>
+          <tr>
+            <td style="font-size:16px; color:#0f172a; font-weight:700;">{{ full_name }}</td>
+            <td align="right" style="font-size:14px; font-weight:700; color:#0ea5e9;">{{ category }}</td>
+          </tr>
+          <tr>
+            <td colspan="2" style="padding-top:8px; font-size:14px; color:#1f2937;">{{ organization or 'N/A' }} • {{ industry or 'Industry not specified' }}</td>
+          </tr>
+          <tr>
+            <td colspan="2" style="padding-top:6px; font-size:13px; color:#6b7280;">Email: <a href="mailto:{{ email }}" style="color:#2563eb; text-decoration:none;">{{ email }}</a> | Phone: {{ phone or 'N/A' }}</td>
+          </tr>
+          <tr>
+            <td colspan="2" style="padding-top:10px; font-size:14px; color:#1f2937; line-height:1.6;">{{ message }}</td>
+          </tr>
+          {% if users_needed %}
+          <tr>
+            <td colspan="2" style="padding-top:8px; font-size:13px; color:#6b7280;">Users Needed: {{ users_needed }}</td>
+          </tr>
+          {% endif %}
+          {% if company_id %}
+          <tr>
+            <td colspan="2" style="padding-top:6px; font-size:13px; color:#6b7280;">Company ID: {{ company_id }}</td>
+          </tr>
+          {% endif %}
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:18px 0 6px 0;">
+        <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;">
+          <tr>
+            <td align="center" bgcolor="#0f172a" style="border-radius:8px;">
+              <a href="{{ action_url or '#' }}" style="display:inline-block; padding:12px 18px; font-size:14px; color:#ffffff; text-decoration:none; font-weight:600; letter-spacing:0.2px;">Open CRM Record</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="font-size:12px; color:#6b7280; padding-top:8px;">Submitted at {{ submitted_at }}</td>
+    </tr>
+  </table>
+{% endblock %}

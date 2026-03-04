@@ -9,6 +9,51 @@ body {
 #sidebar {
     width: 240px;
     min-height: 100vh;
+    flex: 0 0 240px; /* prevent flex from shrinking sidebar */
+    overflow-y: auto; /* keep long menus scrollable */
+    -webkit-overflow-scrolling: touch;
+    transition: transform 0.3s ease;
+}
+
+#page-content {
+    flex: 1 1 auto;
+    min-width: 0; /* keep content from forcing sidebar to resize */
+    background: #f5f6fa;
+}
+
+@media (max-width: 991.98px) {
+    #wrapper {
+        position: relative;
+    }
+
+    #sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        transform: translateX(-100%);
+        z-index: 1040;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        max-height: 100vh; /* allow scrolling on mobile */
+    }
+
+    body.sidebar-open #sidebar {
+        transform: translateX(0);
+    }
+
+    #page-content {
+        min-height: 100vh;
+    }
+
+    .sidebar-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 1030;
+    }
+
+    body.sidebar-open .sidebar-backdrop {
+        display: block;
+    }
 }
 
 #sidebar .nav-link {
@@ -18,10 +63,6 @@ body {
 
 #sidebar .nav-link:hover {
     background: rgba(255, 255, 255, 0.08);
-}
-
-#page-content {
-    background: #f5f6fa;
 }
 
 .icon-circle {
@@ -110,4 +151,10 @@ pre {
 .markdown-content th {
     font-weight: 700;
     background: #f8f9fa;
+}
+
+#risk-chart {
+    max-height: 260px;
+    height: 240px;
+    width: 100%;
 }

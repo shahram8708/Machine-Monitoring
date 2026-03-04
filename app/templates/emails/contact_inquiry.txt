@@ -1,0 +1,16 @@
+New contact inquiry submitted.
+
+Name: {{ full_name }}
+Organization: {{ organization or 'N/A' }}
+Email: {{ email }}
+Phone: {{ phone or 'N/A' }}
+Industry: {{ industry or 'N/A' }}
+Users Needed: {{ users_needed or 'N/A' }}
+Category: {{ category }}
+Company ID: {{ company_id or 'N/A' }}
+Submitted: {{ submitted_at }}
+
+Message:
+{{ message }}
+
+Open CRM: {{ action_url or 'CRM Link' }}

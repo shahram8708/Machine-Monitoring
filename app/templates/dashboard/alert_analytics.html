@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% block title %}Alert Analytics{% endblock %}
+{% block content %}
+<div class="container-fluid" id="alert-analytics-page">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+      <h2 class="mb-1">Alert Analytics</h2>
+      <p class="text-muted mb-0">SLA performance, severity distribution, and escalation intelligence.</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+      <input type="date" class="form-control form-control-sm" id="start-date">
+      <input type="date" class="form-control form-control-sm" id="end-date">
+      <select class="form-select form-select-sm" id="plant-filter">
+        <option value="">All Plants</option>
+        {% for pid in plant_ids or [] %}
+        <option value="{{ pid }}">Plant {{ pid }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-outline-secondary btn-sm" id="apply-filters">Apply</button>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Total Alerts</div>
+          <h4 class="mb-0" id="kpi-total">--</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Open Alerts</div>
+          <h4 class="mb-0" id="kpi-open">--</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">SLA Breaches</div>
+          <h4 class="mb-0" id="kpi-sla">--</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Avg Resolution Time</div>
+          <h4 class="mb-0" id="kpi-resolution">--</h4>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Alerts per Day</h6>
+            <small class="text-muted" id="updated-at">--</small>
+          </div>
+          <div class="position-relative" style="min-height:260px;">
+            <div class="spinner-border text-primary position-absolute top-50 start-50 translate-middle" id="daily-spinner" role="status"></div>
+            <canvas id="alerts-daily" height="220"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Severity Distribution</h6>
+            <small class="text-muted">Stacked</small>
+          </div>
+          <div class="position-relative" style="min-height:260px;">
+            <div class="spinner-border text-primary position-absolute top-50 start-50 translate-middle" id="severity-spinner" role="status"></div>
+            <canvas id="severity-chart" height="220"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">SLA Compliance</h6>
+            <small class="text-muted">Resolved vs breached</small>
+          </div>
+          <div class="position-relative" style="min-height:240px;">
+            <div class="spinner-border text-primary position-absolute top-50 start-50 translate-middle" id="sla-spinner" role="status"></div>
+            <canvas id="sla-chart" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Technician Performance</h6>
+            <small class="text-muted">Resolved count</small>
+          </div>
+          <div class="position-relative" style="min-height:240px;">
+            <div class="spinner-border text-primary position-absolute top-50 start-50 translate-middle" id="tech-spinner" role="status"></div>
+            <canvas id="tech-chart" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Escalation Frequency</h6>
+            <small class="text-muted">By level</small>
+          </div>
+          <div class="position-relative" style="min-height:240px;">
+            <div class="spinner-border text-primary position-absolute top-50 start-50 translate-middle" id="escalation-spinner" role="status"></div>
+            <canvas id="escalation-chart" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Alert Heatmap</h6>
+            <small class="text-muted">Day vs hour</small>
+          </div>
+          <div class="row row-cols-7 g-2" id="heatmap-grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-danger d-none mt-3" id="alert-error"></div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+window.ALERT_ANALYTICS_CONFIG = {
+  accessToken: {{ access_token|tojson }},
+  companyId: {{ company_id|default(0)|int }},
+  endpoints: {
+    analytics: "{{ url_for('api.alert_analytics_api') }}"
+  }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/alert_analytics.js') }}"></script>
+{% endblock %}

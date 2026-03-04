@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Machine Detail | Machine Monitoring{% endblock %}
 {% block content %}
+{% set user_role = (current_user.active_role or current_user.role or '')|lower %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h4 class="mb-0">{{ machine.machine_name }}</h4>
@@ -8,12 +9,12 @@
     </div>
     <div class="d-flex gap-2">
         <a href="{{ url_for('machines.list_machines') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back</a>
-        {% if current_user.role in ['admin', 'manager'] %}
+        {% if user_role in ['admin', 'manager'] %}
         <a href="{{ url_for('machines.edit_machine', machine_id=machine.id) }}" class="btn btn-primary btn-sm"><i class="bi bi-pencil me-1"></i>Edit Machine</a>
         {% endif %}
         <a href="{{ url_for('analytics.analytics_dashboard', machine_id=machine.id) }}" class="btn btn-outline-info btn-sm"><i class="bi bi-graph-up-arrow me-1"></i>Analytics</a>
         <a href="{{ url_for('ai.ai_insights', machine_id=machine.id) }}" class="btn btn-outline-success btn-sm"><i class="bi bi-robot me-1"></i>AI Insights</a>
-        {% if current_user.role == 'admin' %}
+        {% if user_role == 'admin' %}
         <form method="post" action="{{ url_for('machines.delete_machine', machine_id=machine.id) }}" onsubmit="return confirm('Delete this machine and all sensors?');">
             <input type="hidden" name="_token" value="{{ csrf_token() }}">
             <button class="btn btn-danger btn-sm" type="submit"><i class="bi bi-trash"></i> Delete</button>
@@ -44,7 +45,7 @@
                         <h6 class="text-uppercase text-muted small mb-1">Sensors</h6>
                         <p class="mb-0 text-muted small">Linked sensors for this machine.</p>
                     </div>
-                    {% if current_user.role in ['admin', 'manager'] %}
+                    {% if user_role in ['admin', 'manager'] %}
                     <a class="btn btn-sm btn-outline-primary" href="{{ url_for('machines.add_sensor', machine_id=machine.id) }}">
                         <i class="bi bi-plus-lg me-1"></i>Add Sensor
                     </a>
@@ -72,12 +73,12 @@
                                 <td>{{ sensor.created_at.strftime('%Y-%m-%d') }}</td>
                                 <td class="text-end">
                                     <div class="btn-group btn-group-sm" role="group">
-                                        {% if current_user.role in ['admin', 'manager'] %}
+                                        {% if user_role in ['admin', 'manager'] %}
                                         <a class="btn btn-outline-primary" href="{{ url_for('machines.edit_sensor', machine_id=machine.id, sensor_id=sensor.id) }}" title="Edit">
                                             <i class="bi bi-pencil"></i>
                                         </a>
                                         {% endif %}
-                                        {% if current_user.role == 'admin' %}
+                                        {% if user_role == 'admin' %}
                                         <form method="post" action="{{ url_for('machines.delete_sensor', machine_id=machine.id, sensor_id=sensor.id) }}" onsubmit="return confirm('Delete this sensor?');">
                                             <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                             <button class="btn btn-outline-danger" type="submit" title="Delete">

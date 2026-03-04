@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h2 class="mb-1">ESG & Energy</h2>
+      <p class="text-muted mb-0">Energy trends, sustainability score, AI suggestions</p>
+    </div>
+    <div class="text-muted" id="esg-last-updated">--</div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span>Energy Trend</span>
+          <div class="d-flex align-items-center gap-2">
+            <label class="text-muted small mb-0">Machine ID</label>
+            <input type="number" id="esg-machine-id" class="form-control form-control-sm" placeholder="Machine ID">
+            <button class="btn btn-sm btn-primary" id="esg-refresh">Refresh</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <canvas id="esg-energy-chart" height="240"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card mb-3">
+        <div class="card-header">Sustainability Score</div>
+        <div class="card-body text-center">
+          <div class="display-5" id="esg-score">--</div>
+          <p class="text-muted mb-0">AI confidence: <span id="esg-confidence">--</span></p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">AI Suggestions</div>
+        <div class="card-body" id="esg-suggestions"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>window.ACCESS_TOKEN = "{{ access_token }}";</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/esg.js') }}"></script>
+{% endblock %}

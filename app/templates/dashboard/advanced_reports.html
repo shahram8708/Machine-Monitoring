@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% block title %}Advanced Reports{% endblock %}
+{% block content %}
+<div class="container-fluid" id="advanced-reports-page">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+      <h2 class="mb-1">Advanced Reports</h2>
+      <p class="text-muted mb-0">Generate predictive maintenance, financial, and RCA summaries.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge bg-secondary" id="report-status">Idle</span>
+      <button class="btn btn-outline-secondary btn-sm" id="refresh-reports">Refresh</button>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="mb-3">Generate Report</h6>
+          <form id="report-form" class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Report Type</label>
+              <select class="form-select" id="report-type" required>
+                <option value="predictive_maintenance">Predictive Maintenance Roadmap</option>
+                <option value="cross_plant_comparison">Cross-Plant Comparison</option>
+                <option value="failure_forecasting">Failure Forecasting</option>
+                <option value="downtime_financial">Downtime Financial</option>
+                <option value="strategic_summary">AI Strategic Summary</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Format</label>
+              <select class="form-select" id="report-format">
+                <option value="PDF">PDF</option>
+                <option value="EXCEL">Excel</option>
+                <option value="JSON">JSON</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Date Range</label>
+              <div class="input-group">
+                <input type="date" class="form-control" id="start-date">
+                <input type="date" class="form-control" id="end-date">
+              </div>
+            </div>
+            <div class="col-12">
+              <button class="btn btn-primary w-100" type="submit" id="generate-btn">Generate</button>
+            </div>
+          </form>
+          <div class="alert alert-warning d-none mt-3" id="report-warning"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Generated Reports</h6>
+            <small class="text-muted" id="reports-updated">--</small>
+          </div>
+          <div class="table-responsive">
+            <table class="table align-middle mb-0" id="report-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Type</th>
+                  <th>Format</th>
+                  <th>Generated At</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="report-table-body">
+                <tr id="report-empty"><td colspan="5" class="text-center text-muted">No reports yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Report Frequency</h6>
+            <small class="text-muted">Trend by day</small>
+          </div>
+          <div class="position-relative" style="min-height:260px;">
+            <div class="spinner-border text-primary position-absolute top-50 start-50 translate-middle" id="freq-spinner" role="status"></div>
+            <canvas id="frequency-chart" height="220"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Report Types</h6>
+            <small class="text-muted">Distribution</small>
+          </div>
+          <div class="position-relative" style="min-height:260px;">
+            <div class="spinner-border text-primary position-absolute top-50 start-50 translate-middle" id="type-spinner" role="status"></div>
+            <canvas id="type-chart" height="220"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-danger d-none mt-3" id="reports-error"></div>
+</div>
+
+<div class="modal fade" id="reportPreviewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Report Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <iframe id="report-preview-frame" src="" class="w-100" style="height:70vh;"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+window.ADV_REPORTS_CONFIG = {
+  accessToken: {{ access_token|tojson }},
+  companyId: {{ company_id|default(0)|int }},
+  endpoints: {
+    list: "{{ url_for('report_api.list_advanced') }}",
+    generate: "{{ url_for('report_api.generate_advanced') }}",
+    downloadBase: "{{ url_for('report_api.download', report_id=0) }}"
+  }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/advanced_reports.js') }}"></script>
+{% endblock %}

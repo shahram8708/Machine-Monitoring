@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block title %}CEO Dashboard{% endblock %}
+{% block content %}
+<div class="row g-3" id="dashboard-ceo">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Enterprise Overview</h4>
+            <span class="badge bg-primary">Real-time</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <div class="text-muted small">Company-wide OEE</div>
+                        <h3 class="mb-0" id="ceo-oee">--</h3>
+                    </div>
+                    <i class="bi bi-speedometer2 fs-3 text-primary"></i>
+                </div>
+                <div class="text-muted small">Availability, Performance, Quality combined.</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <div class="text-muted small">Total Downtime Cost</div>
+                        <h4 class="mb-0" id="ceo-downtime-cost">--</h4>
+                    </div>
+                    <i class="bi bi-cash-coin fs-3 text-danger"></i>
+                </div>
+                <div class="text-muted small">Calculated daily.</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <div class="text-muted small">Risky Machines</div>
+                        <h4 class="mb-0" id="ceo-risk-machines">--</h4>
+                    </div>
+                    <i class="bi bi-exclamation-triangle fs-3 text-warning"></i>
+                </div>
+                <div class="text-muted small">Health score under threshold.</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <div class="text-muted small">Underperforming Plants</div>
+                        <h4 class="mb-0" id="ceo-underplants">--</h4>
+                    </div>
+                    <i class="bi bi-graph-down fs-3 text-secondary"></i>
+                </div>
+                <div class="text-muted small">OEE below target.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Cross-plant OEE</h6>
+                    <span class="text-muted small">Daily</span>
+                </div>
+                <canvas id="ceo-plant-oee"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Downtime Cost by Plant</h6>
+                    <span class="text-muted small">Today</span>
+                </div>
+                <canvas id="ceo-plant-cost"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Top 5 Risky Machines</h6>
+                    <span class="text-muted small">Health & OEE</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0" id="ceo-risk-table">
+                        <thead>
+                            <tr>
+                                <th>Machine</th>
+                                <th>Plant</th>
+                                <th>OEE</th>
+                                <th>Downtime Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+window.dashboardConfig = {
+    mode: "ceo",
+    endpoints: {
+        summary: "/api/v1/kpi/company-summary",
+        plants: "/api/v1/comparison/plants",
+        machines: "/api/v1/comparison/machines"
+    },
+    pollInterval: 30000
+};
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

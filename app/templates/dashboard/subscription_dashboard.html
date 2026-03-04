@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% block title %}Subscription{% endblock %}
+{% block content %}
+<div class="container-fluid" id="subscription-page">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+      <h2 class="mb-1">Subscription & Billing</h2>
+      <p class="text-muted mb-0">Plan status, usage limits, billing cycle, and upgrade controls.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge bg-info text-dark" id="plan-status">Checking…</span>
+      <button class="btn btn-outline-secondary btn-sm" id="refresh-subscription">Refresh</button>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-xl-4 col-lg-5">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <div class="text-muted small">Current Plan</div>
+              <h4 class="mb-0" id="plan-name">--</h4>
+            </div>
+            <div class="text-end">
+              <div class="text-muted small">Billing Cycle</div>
+              <span class="fw-semibold" id="billing-cycle">--</span>
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="text-muted small">Razorpay Status</div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-secondary" id="razorpay-status">--</span>
+              <small class="text-muted" id="last-payment">Last payment: --</small>
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <div class="p-3 bg-light rounded">
+                <div class="text-muted small">Plan Ends</div>
+                <div class="fw-semibold" id="plan-ends">--</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="p-3 bg-light rounded">
+                <div class="text-muted small">Expires In</div>
+                <div class="fw-semibold" id="expiry-countdown">--</div>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex gap-2 mb-2">
+            <button class="btn btn-primary flex-fill" id="upgrade-btn">Upgrade</button>
+            <button class="btn btn-outline-danger flex-fill" id="cancel-btn">Cancel</button>
+          </div>
+          <div class="small text-muted">Actions will call billing APIs with the selected plan.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-8 col-lg-7">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Usage & Limits</h6>
+            <small class="text-muted" id="usage-updated">--</small>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="mb-2">Machines</div>
+              <div class="progress mb-1" style="height: 12px;">
+                <div class="progress-bar bg-primary" id="machines-progress" role="progressbar" style="width: 0%"></div>
+              </div>
+              <div class="d-flex justify-content-between text-muted small">
+                <span id="machines-usage">--</span>
+                <span id="machines-limit">--</span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-2">AI Predictions</div>
+              <div class="progress mb-1" style="height: 12px;">
+                <div class="progress-bar bg-success" id="ai-progress" role="progressbar" style="width: 0%"></div>
+              </div>
+              <div class="d-flex justify-content-between text-muted small">
+                <span id="ai-usage">--</span>
+                <span id="ai-limit">--</span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-2">API Calls</div>
+              <div class="progress mb-1" style="height: 12px;">
+                <div class="progress-bar bg-info" id="api-progress" role="progressbar" style="width: 0%"></div>
+              </div>
+              <div class="d-flex justify-content-between text-muted small">
+                <span id="api-usage">--</span>
+                <span id="api-limit">Unlimited</span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-2">Reports</div>
+              <div class="progress mb-1" style="height: 12px;">
+                <div class="progress-bar bg-warning" id="reports-progress" role="progressbar" style="width: 0%"></div>
+              </div>
+              <div class="d-flex justify-content-between text-muted small">
+                <span id="reports-usage">--</span>
+                <span id="reports-limit">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">Plan Features</h6>
+            <span class="text-muted small">Live from subscription plan</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table align-middle mb-0" id="feature-table">
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  <th>Status</th>
+                  <th>Limits</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Advanced Reports</td>
+                  <td><span class="badge bg-secondary" id="feature-advanced-reports">--</span></td>
+                  <td class="text-muted small">Controlled by plan</td>
+                </tr>
+                <tr>
+                  <td>Digital Twin</td>
+                  <td><span class="badge bg-secondary" id="feature-digital-twin">--</span></td>
+                  <td class="text-muted small">Controlled by plan</td>
+                </tr>
+                <tr>
+                  <td>Workforce Analytics</td>
+                  <td><span class="badge bg-secondary" id="feature-workforce">--</span></td>
+                  <td class="text-muted small">Controlled by plan</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Monthly Usage Trend</h6>
+            <small class="text-muted">Based on UsageMetric</small>
+          </div>
+          <div class="position-relative" style="min-height:260px;">
+            <div class="spinner-border text-primary position-absolute top-50 start-50 translate-middle" id="usage-spinner" role="status"></div>
+            <canvas id="usage-trend-chart" class="w-100" height="220"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">API Usage</h6>
+            <small class="text-muted">Calls by day</small>
+          </div>
+          <div class="position-relative" style="min-height:260px;">
+            <div class="spinner-border text-primary position-absolute top-50 start-50 translate-middle" id="api-spinner" role="status"></div>
+            <canvas id="api-usage-chart" class="w-100" height="220"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">Upgrade Plans</h6>
+            <small class="text-muted">Compare tiers from backend</small>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover" id="plan-table">
+              <thead>
+                <tr>
+                  <th>Plan</th>
+                  <th>Machines</th>
+                  <th>AI Limit</th>
+                  <th>Advanced Reports</th>
+                  <th>Digital Twin</th>
+                  <th>Workforce Analytics</th>
+                  <th>Monthly</th>
+                  <th>Yearly</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="plan-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-danger d-none mt-3" id="subscription-error"></div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+window.SUBSCRIPTION_PAGE = {
+  accessToken: {{ access_token|tojson }},
+  companyId: {{ company_id|default(0)|int }},
+  machineCount: {{ current_user.company.machines.count() if current_user and current_user.company else 0 }},
+  endpoints: {
+    status: "{{ url_for('subscription.subscription_status') }}",
+    plans: "{{ url_for('subscription.list_plans') }}",
+    start: "{{ url_for('subscription.start_plan') }}",
+    usage: "{{ url_for('usage.company_usage', company_id=company_id|default(0)|int) }}",
+    usageHistory: "{{ url_for('usage.company_usage_history', company_id=company_id|default(0)|int) }}"
+  }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/subscription_dashboard.js') }}"></script>
+{% endblock %}
