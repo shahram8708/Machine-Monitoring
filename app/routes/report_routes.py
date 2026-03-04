@@ -17,6 +17,7 @@ from app.services.advanced_report_service import (
     generate_advanced_report,
     list_reports,
     get_report as get_advanced_report,
+    delete_report as delete_advanced_report,
 )
 from config import get_config
 
@@ -207,6 +208,24 @@ def list_advanced():
     per_page = min(int(request.args.get("per_page", 20)), 100)
     results = list_reports(user.company_id, page=page, per_page=per_page)
     return jsonify(results)
+
+
+@report_api_bp.route("/<int:report_id>", methods=["DELETE"])
+@csrf.exempt
+@jwt_required()
+@rate_limit()
+@feature_required("advanced_reports")
+def delete_advanced(report_id: int):
+    user = _resolve_user()
+    if not user or (user.active_role or "").upper() not in _ALLOWED_ROLES:
+        return jsonify({"status": "error", "message": "Forbidden"}), 403
+
+    deleted = delete_advanced_report(report_id, user.company_id)
+    if not deleted:
+        return jsonify({"status": "error", "message": "Report not found"}), 404
+
+    log_action("advanced_report_deleted", "advanced_report", report_id, company_id=user.company_id)
+    return jsonify({"status": "ok", "message": "Report deleted"}), 200
 
 
 @report_api_bp.route("/download/<int:report_id>", methods=["GET"])

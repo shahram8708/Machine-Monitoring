@@ -136,7 +136,8 @@ window.ADV_REPORTS_CONFIG = {
   endpoints: {
     list: "{{ url_for('report_api.list_advanced') }}",
     generate: "{{ url_for('report_api.generate_advanced') }}",
-    downloadBase: "{{ url_for('report_api.download', report_id=0) }}"
+    downloadBase: "{{ url_for('report_api.download', report_id=0) }}",
+    deleteBase: "{{ url_for('report_api.delete_advanced', report_id=0) }}"
   }
 };
 </script>

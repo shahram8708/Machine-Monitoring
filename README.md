@@ -228,24 +228,3 @@
 
 ## 1️⃣8️⃣ Final Professional Conclusion
 This platform unifies telemetry ingest, alerting, AI diagnostics, analytics, and reporting into a single, role-secured web application. It is production-minded (background jobs, escalation, audit trails) yet friendly to pilots through built-in simulation. With clear extension points and a modern Python stack, it can evolve into a full-scale industrial monitoring product.
-
-
-
-
-
-
-@"
-from app import create_app
-from app.extensions import db
-from app.models.user import User
-
-app = create_app()
-with app.app_context():
-    u = User.query.filter_by(email="priya.nair@aurora-precision.com").first()
-    if not u:
-        raise SystemExit("User not found")
-    u.set_password("Aurora!Tech#25")
-    u.is_active = True
-    db.session.commit()
-    print("Password reset for Priya")
-"@ | python -

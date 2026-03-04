@@ -305,3 +305,28 @@ def list_reports(company_id: int, page: int = 1, per_page: int = 20):
 
 def get_report(report_id: int, company_id: int) -> AdvancedReport:
     return AdvancedReport.query.filter_by(id=report_id, company_id=company_id).first_or_404()
+
+
+def delete_report(report_id: int, company_id: int) -> bool:
+    report = AdvancedReport.query.filter_by(id=report_id, company_id=company_id).first()
+    if not report:
+        return False
+
+    possible_paths = []
+    if report.file_path:
+        resolved = _resolve_export_path(report.file_path)
+        possible_paths.append(resolved)
+        legacy_base = os.path.join(os.getcwd(), "generated_reports")
+        if not os.path.isabs(report.file_path):
+            possible_paths.append(os.path.join(legacy_base, report.file_path))
+
+    for path in possible_paths:
+        if path and os.path.exists(path):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
+    db.session.delete(report)
+    db.session.commit()
+    return True

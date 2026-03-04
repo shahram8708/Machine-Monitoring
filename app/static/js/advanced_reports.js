@@ -68,6 +68,7 @@
           <div class="btn-group btn-group-sm">
             <button class="btn btn-outline-primary" data-action="download" data-id="${r.id}" data-type="${r.report_type}" data-format="${r.format}">Download</button>
             <button class="btn btn-outline-secondary" data-action="preview" data-id="${r.id}" data-type="${r.report_type}" data-format="${r.format}">Preview</button>
+            <button class="btn btn-outline-danger" data-action="delete" data-id="${r.id}">Delete</button>
           </div>
         </td>`;
       tbody.appendChild(tr);
@@ -78,7 +79,13 @@
         const action = e.currentTarget.dataset.action;
         const type = e.currentTarget.dataset.type;
         const format = e.currentTarget.dataset.format;
-        action === 'download' ? downloadReport(id, type, format) : previewReport(id, type, format);
+        if (action === 'download') {
+          downloadReport(id, type, format);
+        } else if (action === 'preview') {
+          previewReport(id, type, format);
+        } else if (action === 'delete') {
+          deleteReport(id);
+        }
       });
     });
   };
@@ -169,6 +176,21 @@
       }
     } catch (err) {
       showError(err.message);
+    }
+  };
+
+  const deleteReport = async (id) => {
+    const confirmDelete = window.confirm('Delete this report? This cannot be undone.');
+    if (!confirmDelete) return;
+    try {
+      setStatus('Deleting…', 'warning');
+      const resp = await fetch(cfg.endpoints.deleteBase.replace('/0', `/${id}`), { method: 'DELETE', headers, credentials: 'include' });
+      if (!resp.ok) throw new Error(`Delete failed ${resp.status}`);
+      await loadReports();
+      setStatus('Deleted', 'success');
+    } catch (err) {
+      showError(err.message);
+      setStatus('Error', 'danger');
     }
   };
 
