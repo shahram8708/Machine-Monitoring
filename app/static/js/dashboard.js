@@ -60,7 +60,7 @@
     const ceoFlow = () => {
         const fetchSummary = () => fetch(cfg.endpoints.summary).then((r) => r.json()).then((data) => {
             setText("ceo-oee", `${fmt((data.oee || 0) * 100, 1)}%`);
-            setText("ceo-downtime-cost", `$${fmt(data.cost_of_downtime || 0, 2)}`);
+            setText("ceo-downtime-cost", `₹${fmt(data.cost_of_downtime || 0, 2)}`);
         }).catch(() => {});
 
         const fetchPlants = () => fetch(cfg.endpoints.plants).then((r) => r.json()).then((data) => {
@@ -80,7 +80,7 @@
             tbody.innerHTML = "";
             worst.forEach((row) => {
                 const tr = document.createElement("tr");
-                tr.innerHTML = `<td>${row.machine_id}</td><td>${row.plant_id || "-"}</td><td>${fmt((row.oee || 0) * 100, 1)}%</td><td>$${fmt(row.cost_of_downtime || 0, 2)}</td>`;
+                tr.innerHTML = `<td>${row.machine_id}</td><td>${row.plant_id || "-"}</td><td>${fmt((row.oee || 0) * 100, 1)}%</td><td>₹${fmt(row.cost_of_downtime || 0, 2)}</td>`;
                 tbody.appendChild(tr);
             });
         }).catch(() => {});
@@ -158,7 +158,7 @@
             tbody.innerHTML = "";
             worst.forEach((row) => {
                 const tr = document.createElement("tr");
-                tr.innerHTML = `<td>${row.machine_id}</td><td>${row.plant_id || "-"}</td><td>${fmt((row.oee || 0) * 100, 1)}%</td><td>$${fmt(row.cost_of_downtime || 0, 2)}</td>`;
+                tr.innerHTML = `<td>${row.machine_id}</td><td>${row.plant_id || "-"}</td><td>${fmt((row.oee || 0) * 100, 1)}%</td><td>₹${fmt(row.cost_of_downtime || 0, 2)}</td>`;
                 tbody.appendChild(tr);
             });
             renderLine("mtbf-trend", "mtbf-trend", worst.map((_, idx) => idx + 1), worst.map((r) => (r.oee || 0) * 10), "MTBF", "#0d6efd");

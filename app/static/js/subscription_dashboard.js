@@ -99,8 +99,8 @@
         <td><span class="badge bg-${p.advanced_reports_enabled ? 'success' : 'secondary'}">${p.advanced_reports_enabled ? 'On' : 'Off'}</span></td>
         <td><span class="badge bg-${p.digital_twin_enabled ? 'success' : 'secondary'}">${p.digital_twin_enabled ? 'On' : 'Off'}</span></td>
         <td><span class="badge bg-${p.workforce_analytics_enabled ? 'success' : 'secondary'}">${p.workforce_analytics_enabled ? 'On' : 'Off'}</span></td>
-        <td>$${(p.price_monthly || 0).toFixed(2)}</td>
-        <td>$${(p.price_yearly || 0).toFixed(2)}</td>
+        <td>₹${(p.price_monthly || 0).toFixed(2)}</td>
+        <td>₹${(p.price_yearly || 0).toFixed(2)}</td>
         <td><button class="btn btn-sm btn-outline-primary" data-plan="${p.name}">Select</button></td>`;
       tbody.appendChild(tr);
     });

@@ -29,7 +29,7 @@
         <td>${p.recommended_quantity || 0}</td>
         <td>${p.current_stock || 0} / ${p.minimum_required_stock || 0}</td>
         <td><span class="badge bg-${p.stock_out_risk > 60 ? 'danger' : p.stock_out_risk > 30 ? 'warning' : 'success'}">${p.stock_out_risk}%</span></td>
-        <td>$${(p.estimated_cost || 0).toFixed(2)}</td>`;
+        <td>₹${(p.estimated_cost || 0).toFixed(2)}</td>`;
       tableBody.appendChild(tr);
     });
   }

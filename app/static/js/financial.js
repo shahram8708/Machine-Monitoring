@@ -26,12 +26,12 @@
 
   function renderSummary(data) {
     summary.innerHTML = `
-      <div class="d-flex justify-content-between"><span>Projected Downtime Cost</span><span class="fw-bold">$${(data.projected_downtime_cost || 0).toFixed(2)}</span></div>
-      <div class="d-flex justify-content-between"><span>Projected Revenue Loss</span><span class="fw-bold">$${(data.projected_revenue_loss || 0).toFixed(2)}</span></div>
-      <div class="d-flex justify-content-between"><span>Total Risk Exposure</span><span class="fw-bold text-danger">$${(data.total_risk_exposure || 0).toFixed(2)}</span></div>
+      <div class="d-flex justify-content-between"><span>Projected Downtime Cost</span><span class="fw-bold">₹${(data.projected_downtime_cost || 0).toFixed(2)}</span></div>
+      <div class="d-flex justify-content-between"><span>Projected Revenue Loss</span><span class="fw-bold">₹${(data.projected_revenue_loss || 0).toFixed(2)}</span></div>
+      <div class="d-flex justify-content-between"><span>Total Risk Exposure</span><span class="fw-bold text-danger">₹${(data.total_risk_exposure || 0).toFixed(2)}</span></div>
       <div class="text-muted small">Confidence: ${(data.confidence ?? 0)}</div>
     `;
-    document.getElementById('fin-risk').textContent = `$${(data.total_risk_exposure || 0).toFixed(2)}`;
+    document.getElementById('fin-risk').textContent = `₹${(data.total_risk_exposure || 0).toFixed(2)}`;
   }
 
   async function refresh() {
