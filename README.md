@@ -54,7 +54,7 @@
 
 **Machine Monitoring** is an enterprise-grade Industrial IoT (IIoT) SaaS platform that brings together real-time sensor data ingestion, AI-driven predictive maintenance, digital twin simulation, ESG analytics, financial dashboarding, and workforce management into a single unified web application.
 
-The platform is designed for manufacturing companies operating one or more industrial plants. It collects live telemetry from physical machines (temperature, vibration, current, voltage, pressure, humidity, speed), stores it in a relational database, and feeds it into Google Gemini AI to produce health scores, failure probability scores, remaining useful life estimates, anomaly detections, and root cause analyses — all in near real time.
+The platform is designed for manufacturing companies operating one or more industrial plants. It collects live telemetry from physical machines (temperature, vibration, current, voltage, pressure, humidity, speed), stores it in a relational database, and feeds it into EdgeFormer-PM — a cross-sensor attention transformer deployed as a TorchScript INT8 checkpoint on the edge/server — to produce health scores, failure probability scores, remaining useful life estimates, anomaly detections, and root cause analyses in near real time without external API calls.
 
 The system is architected as a Python/Flask web application with a blueprint-based modular structure, JWT-based REST API, APScheduler for background tasks, and a rich JavaScript frontend featuring live charts, digital twin controls, ESG dashboards, and executive CEO reports.
 
@@ -66,9 +66,9 @@ At its core, Machine Monitoring provides the following capabilities working in c
 
 **Real-time ingestion.** Physical sensors installed on industrial machines push JSON payloads over HTTP to the platform's `/api/v1/data-ingest` endpoint, authenticated with a per-machine API token. Every data point is persisted in the `machine_data` table and immediately triggers AI analysis and alert evaluation.
 
-**AI analysis pipeline.** A dedicated background worker thread dequeues incoming data points and calls the Google Gemini 2.5 Flash model. The model receives a structured sensor snapshot combined with a 24-hour historical summary and returns a JSON payload with health score (0–100), risk level (low/medium/high), anomaly flag, maintenance suggestion, and explanation. Results are stored as `ai_analysis` records.
+**AI analysis pipeline.** A dedicated background worker thread dequeues incoming data points and runs EdgeFormer-PM TorchScript INT8 inference locally. The model receives a structured sensor snapshot combined with a 24-hour historical summary and returns multi-task outputs: health score (0–100), risk level (low/medium/high), anomaly flag, remaining useful life estimate, failure probability, and maintenance suggestion. Results are stored as `ai_analysis` records.
 
-**Predictive maintenance.** A scheduled job runs every 30 minutes to compute failure probability, remaining useful life (RUL), degradation trend, and preventive action recommendations for each machine — again powered by Gemini using dedicated prompt templates.
+**Predictive maintenance.** A scheduled job runs every 30 minutes to compute failure probability, remaining useful life (RUL), degradation trend, and preventive action recommendations for each machine using the same EdgeFormer-PM cross-sensor attention transformer (no cloud dependency).
 
 **Digital twin simulation.** Each machine has a paired digital twin that stores baseline OEE, health, failure probability, and energy efficiency. Users can run what-if scenarios (overload simulation, production surge, sensor drift) and receive an AI-powered strategic risk assessment.
 
@@ -100,7 +100,7 @@ Manufacturing companies face several interconnected operational challenges that 
 
 Machine Monitoring solves all of the above by acting as a unified data hub and intelligence layer sitting between physical machinery and the people who operate and manage it.
 
-Sensors mounted on machines continuously stream readings to the platform over HTTP. The platform immediately evaluates those readings for threshold breaches, queues an AI analysis job, and stores the data for trend analysis. Within seconds of each new reading, the system can tell a technician whether a machine is healthy, degrading, or at imminent risk of failure — and explain why, in plain English, directly from Gemini AI.
+Sensors mounted on machines continuously stream readings to the platform over HTTP. The platform immediately evaluates those readings for threshold breaches, queues an AI analysis job, and stores the data for trend analysis. Within seconds of each new reading, the system can tell a technician whether a machine is healthy, degrading, or at imminent risk of failure — and return structured multi-task predictions directly from the EdgeFormer-PM transformer.
 
 The digital twin layer allows plant engineers to run scenarios without touching real machines, understanding the likely impact of running at 120% load or delaying a scheduled calibration.
 
@@ -120,16 +120,16 @@ Define multiple sensors per machine (temperature, vibration, current, voltage, p
 A live view page polls the server every few seconds and renders Chart.js sparklines for all active sensor streams. Running status, last-seen timestamps, and current readings are displayed in real time.
 
 **AI Health Analysis**
-Every incoming data point triggers a Gemini 2.5 Flash call that returns a health score, risk classification, anomaly flag, maintenance suggestion, and explanation. Completed analyses are stored and surfaced on the AI dashboard.
+Every incoming data point runs through the EdgeFormer-PM TorchScript INT8 checkpoint, which returns a health score, risk classification, anomaly flag, remaining useful life estimate, failure probability, and maintenance suggestion. Completed analyses are stored and surfaced on the AI dashboard.
 
 **Predictive Maintenance Engine**
-Scheduled every 30 minutes, the predictive service runs four Gemini prompt chains per machine: failure probability, RUL estimation, degradation trend scoring, and preventive action generation.
+Scheduled every 30 minutes, the predictive service invokes the EdgeFormer-PM multi-task heads per machine: failure probability, RUL estimation, degradation trend scoring, and preventive action generation.
 
 **Digital Twin and What-If Simulation**
-Each machine has a digital twin with baseline OEE, health score, failure probability, and energy efficiency. The simulation engine applies parametric models for overload, production surge, and sensor drift scenarios. Gemini then synthesises a strategic risk assessment and cost impact estimation.
+Each machine has a digital twin with baseline OEE, health score, failure probability, and energy efficiency. The simulation engine applies parametric models for overload, production surge, and sensor drift scenarios, then uses the EdgeFormer-PM inference outputs to synthesise strategic risk and cost impact assessments.
 
 **Root Cause Analysis**
-Grouped alerts can be submitted for AI-powered root cause analysis. Gemini analyses alert history, sensor summaries, and failure probability together and returns a primary root cause, contributing factors, sensor interaction explanation, timeline narrative, and probability breakdown per cause.
+Grouped alerts can be submitted for AI-powered root cause analysis. EdgeFormer-PM processes alert history, sensor summaries, and failure probability together to return a primary root cause, contributing factors, sensor interaction explanation, timeline narrative, and probability breakdown per cause.
 
 **Alert Management**
 Threshold-based alerts with severity levels, SLA deadlines, acknowledgement tracking, escalation rules, suppression rules, and alert grouping. A scheduler checks every minute and escalates open alerts that exceed the configured SLA window.
@@ -213,10 +213,10 @@ HTML and plain-text email templates for alert notifications, alert escalation, S
 │  └─────────────────────────────────────────────────────────────────┘    │
 └──────────────────────────────────────────────────────────────────────────┘
                              │
-                             │  HTTPS (Gemini API calls)
+                             │  In-process EdgeFormer-PM inference
                              ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
-│               GOOGLE GEMINI 2.5 FLASH (AI Analysis)                      │
+│      EDGEFORMER-PM (Cross-Sensor Attention Transformer, TorchScript INT8) │
 │  Health scoring  Failure probability  RUL  Anomaly detection             │
 │  Root cause analysis  What-if simulation  ESG optimisation               │
 │  Executive summary generation  Advanced report narrative                 │
@@ -235,7 +235,7 @@ The end-to-end lifecycle of a machine reading through the platform works as foll
 
 **Step 3 — Alert evaluation.** Immediately after saving the data point, `evaluate_alerts_for_datapoint()` compares each reading against sensor thresholds. If any reading breaches its configured limits, an `Alert` record is created with the appropriate severity and an SLA deadline is calculated.
 
-**Step 4 — AI analysis queue.** The data point ID is pushed onto an in-memory queue consumed by a dedicated background worker thread. The worker calls `run_ai_analysis()`, which constructs a prompt with the current snapshot and a 24-hour statistical summary, then calls Gemini. The response is parsed and stored as an `AiAnalysis` record.
+**Step 4 — AI analysis queue.** The data point ID is pushed onto an in-memory queue consumed by a dedicated background worker thread. The worker calls `run_ai_analysis()`, which normalises the current snapshot plus a 24-hour statistical summary and runs EdgeFormer-PM TorchScript inference. The structured response is parsed and stored as an `AiAnalysis` record.
 
 **Step 5 — Scheduled jobs.** Every 30 minutes, the predictive refresh job runs failure probability, RUL, degradation, and preventive action chains for each machine. Every minute, the alert escalation job checks for alerts older than the SLA deadline and escalates them, sending email notifications. Every night at 02:15, the nightly aggregation job rolls up hourly machine stats into daily summaries.
 
@@ -243,7 +243,7 @@ The end-to-end lifecycle of a machine reading through the platform works as foll
 
 **Step 7 — Dashboard rendering.** When a user logs into the web interface, the appropriate dashboard template is served based on their role. JavaScript running in the browser polls the REST API endpoints to refresh charts, health indicators, and alert counts at regular intervals.
 
-**Step 8 — Digital twin simulation.** A user can open a machine's digital twin view, configure a what-if scenario (e.g., +25% production surge), click Simulate, and receive an immediate simulation result from the Python engine plus an AI strategic assessment from Gemini.
+**Step 8 — Digital twin simulation.** A user can open a machine's digital twin view, configure a what-if scenario (e.g., +25% production surge), click Simulate, and receive an immediate simulation result from the Python engine plus an EdgeFormer-PM risk assessment.
 
 ---
 
@@ -259,7 +259,7 @@ The end-to-end lifecycle of a machine reading through the platform works as foll
 | CSRF Protection | Flask-WTF (CSRFProtect) |
 | Email | Flask-Mail |
 | Scheduler | APScheduler (BackgroundScheduler) |
-| AI Engine | Google Gemini 2.5 Flash (via google-genai SDK) |
+| AI Engine | EdgeFormer-PM (cross-sensor attention transformer, PyTorch TorchScript INT8, edge/server inference) |
 | Payment | Razorpay Python SDK |
 | Report Export | ReportLab (PDF), openpyxl (Excel) |
 | HTTP Client | requests |
@@ -297,7 +297,7 @@ The end-to-end lifecycle of a machine reading through the platform works as foll
 
 **APScheduler** runs four scheduled jobs within the Flask application context: machine offline detection, alert escalation, nightly analytics aggregation, and predictive maintenance refresh.
 
-**google-genai SDK** provides the Python client for Google Gemini. The engine configures a `GoogleSearch` grounding tool for Gemini to consult external knowledge when needed, ensuring analysis is not limited to training data.
+**PyTorch** powers the EdgeFormer-PM transformer; the TorchScript INT8 checkpoint (`edgeformer_pm_int8.pt`) runs locally on ARM/CPU for low-latency inference without external API calls.
 
 **Chart.js** (loaded from CDN in browser) renders all time-series charts, bar charts, doughnut charts, and scatter plots on the frontend dashboards.
 
@@ -332,7 +332,7 @@ Machine-Monitoring-main/
 │   │
 │   ├── models/                 SQLAlchemy ORM models (one file per entity)
 │   ├── api/                    REST API blueprints (data ingestion, alerts, KPIs, twin, RCA)
-│   ├── ai/                     AI engine (Gemini client, worker thread, prompt templates)
+│   ├── ai/                     AI engine (EdgeFormer-PM TorchScript loader, preprocessing, worker thread)
 │   ├── auth/                   Authentication blueprint (login, register, logout)
 │   ├── main/                   Main blueprint (dashboard, index)
 │   ├── machines/               Machine CRUD blueprint
@@ -394,7 +394,7 @@ Machine-Monitoring-main/
 
 **`run.py`** — The entry point for the development server. It calls `create_app()` from the application factory and optionally runs seed data on startup via `SeedRunner`. The `use_reloader=False` flag prevents APScheduler from starting twice during the Werkzeug reloader cycle.
 
-**`config.py`** — Defines three configuration classes: `Config` (base), `DevelopmentConfig` (debug enabled, subscription check disabled by default), and `ProductionConfig` (secure cookies, no debug). All values are read from environment variables with sensible defaults. Notable settings include `SIMULATION_MODE` for enabling a built-in data simulator, all Gemini model parameters, Razorpay keys, SMTP settings, JWT token lifetimes, and rate limiting parameters.
+**`config.py`** — Defines three configuration classes: `Config` (base), `DevelopmentConfig` (debug enabled, subscription check disabled by default), and `ProductionConfig` (secure cookies, no debug). All values are read from environment variables with sensible defaults. Notable settings include `SIMULATION_MODE` for enabling a built-in data simulator, EdgeFormer-PM model path/device parameters, Razorpay keys, SMTP settings, JWT token lifetimes, and rate limiting parameters.
 
 **`requirements.txt`** — Lists all Python dependencies without pinned versions, keeping the project easy to update.
 
@@ -426,11 +426,11 @@ Contains the `log_action()` helper that writes audit log entries. Automatically 
 
 ### AI Module (`app/ai/`)
 
-**`gemini_engine.py`** — The lowest-level Gemini integration. Configures the `genai.Client` with the API key from environment, attaches a `GoogleSearch` grounding tool, constructs prompts from the current sensor snapshot combined with a 24-hour statistical history window, calls Gemini, extracts JSON from the response, validates and normalises the fields, and returns a clean Python dictionary.
+**`edgeformer_engine.py`** — Loads the EdgeFormer-PM TorchScript INT8 checkpoint (`edgeformer_pm_int8.pt`), applies cross-sensor normalisation, runs inference, validates outputs, and returns structured multi-task predictions.
 
-**`worker.py`** — Implements a thread-safe producer/consumer queue. `init_ai_worker()` starts a daemon thread that loops forever, dequeuing jobs and calling `run_ai_analysis()`. Jobs are enqueued by the data ingestion endpoint immediately after saving each new `MachineData` row. Analysis records are created in `pending` status before the job is processed and updated to `completed` or `failed` after.
+**`worker.py`** — Implements a thread-safe producer/consumer queue. `init_ai_worker()` starts a daemon thread that loops forever, dequeuing jobs and calling `run_ai_analysis()` to invoke EdgeFormer-PM inference. Jobs are enqueued by the data ingestion endpoint immediately after saving each new `MachineData` row. Analysis records are created in `pending` status before the job is processed and updated to `completed` or `failed` after.
 
-**`prompt_templates.py`** — Defines all Gemini prompt strings as module-level constants. Each prompt instructs Gemini to return strict JSON, specifies the exact output schema, and includes explicit rules about staying within provided data, maintaining consistency, and avoiding prose outside the JSON block. Templates cover failure probability, RUL estimation, anomaly detection, degradation analysis, preventive actions, root cause analysis, what-if simulation, ESG improvement, executive summary, and advanced report summary.
+**`model_config.py`** — Holds model metadata (input channel order, scaling parameters, expected sequence length, and quantization flags) used by the EdgeFormer-PM engine to keep inference deterministic across edge deployments.
 
 **`routes.py`** — Handles the `/ai/insights` page that displays the AI analysis history for a selected machine with filterable health scores and risk levels.
 
@@ -460,13 +460,13 @@ Contains the `log_action()` helper that writes audit log entries. Automatically 
 
 **`ai_analysis.py`** — Stores completed AI analysis results: health score, risk level, anomaly flag, maintenance suggestion, explanation, and status (pending/completed/failed).
 
-**`ai_prediction.py`** — Stores scheduled predictive analysis results: failure probability, RUL hours, degradation trend score, anomaly score, and all JSON output fields from each Gemini chain.
+**`ai_prediction.py`** — Stores scheduled predictive analysis results: failure probability, RUL hours, degradation trend score, anomaly score, and all JSON output fields emitted by the EdgeFormer-PM multi-task heads.
 
 **`alert.py`** — The alert model with severity, SLA deadline, acknowledgement tracking, escalation level, priority score, alert grouping, and a rich `AlertTimeline` child model for event history.
 
 **`alert_group.py`** — Groups related alerts for root cause analysis and aggregate analytics.
 
-**`root_cause_analysis.py`** — Stores Gemini RCA output: primary cause, contributing factors, probability breakdown, timeline explanation, sensor interactions, and confidence score.
+**`root_cause_analysis.py`** — Stores EdgeFormer-PM RCA output: primary cause, contributing factors, probability breakdown, timeline explanation, sensor interactions, and confidence score.
 
 **`digital_twin.py`** — Stores the baseline operating profile of a machine: OEE, health score, failure probability, and energy efficiency. The `TwinSimulationHistory` child model stores each what-if scenario run with input parameters and simulated results.
 
@@ -508,17 +508,17 @@ The service layer is where all business logic lives. Each file corresponds to on
 
 **`health_service.py`** — Computes composite health scores by combining sensor threshold breach severity, recent AI analysis scores, and downtime frequency.
 
-**`predictive_service.py`** — Coordinates the four Gemini predictive chains, assembles input context from KPIs, health scores, recent data, and alert history, and saves `AIPrediction` records.
+**`predictive_service.py`** — Coordinates the EdgeFormer-PM predictive heads, assembles input context from KPIs, health scores, recent data, and alert history, and saves `AIPrediction` records.
 
-**`anomaly_service.py`** — Computes z-scores for each sensor channel over a rolling time window, identifies outliers, and optionally submits findings to Gemini for validation.
+**`anomaly_service.py`** — Computes z-scores for each sensor channel over a rolling time window, identifies outliers, and can optionally run the EdgeFormer-PM anomaly head for validation.
 
 **`simulation_engine.py`** — Pure Python parametric simulation. Applies mathematical models for overload (`_apply_overload`), production surge (`_apply_surge`), and sensor drift (`_apply_drift`) to baseline digital twin values and returns a `SimulationResult` dataclass.
 
-**`twin_service.py`** — Orchestrates digital twin simulation: calls the simulation engine, invokes Gemini for strategic assessment, persists `TwinSimulationHistory`, and returns combined results.
+**`twin_service.py`** — Orchestrates digital twin simulation: calls the simulation engine, invokes EdgeFormer-PM for strategic risk scoring, persists `TwinSimulationHistory`, and returns combined results.
 
-**`rca_service.py`** — Assembles alert group context and calls Gemini with the `root_cause_analysis_prompt` template.
+**`rca_service.py`** — Assembles alert group context and runs the EdgeFormer-PM RCA head to populate structured outputs.
 
-**`esg_service.py`** — Calculates energy consumption series from voltage/current readings, derives carbon proxy, and calls Gemini for sustainability improvement suggestions.
+**`esg_service.py`** — Calculates energy consumption series from voltage/current readings, derives carbon proxy, and applies EdgeFormer-PM scoring for sustainability improvement suggestions.
 
 **`financial_service.py`** — Calculates downtime cost (cost per hour × downtime duration), OEE-linked revenue impact, spare part expenditure, and total financial exposure from open alerts.
 
@@ -526,7 +526,7 @@ The service layer is where all business logic lives. Each file corresponds to on
 
 **`analytics_service.py`** — `run_nightly_aggregation()` processes raw machine data into hourly stats. Advanced analytics methods calculate cross-plant comparisons and heatmap data.
 
-**`report_service.py`** and **`advanced_report_service.py`** — Generate structured report data and call Gemini for narrative summaries.
+**`report_service.py`** and **`advanced_report_service.py`** — Generate structured report data and use EdgeFormer-PM outputs for narrative and risk summaries.
 
 **`export_service.py`** — Generates PDF exports via ReportLab and Excel workbooks via openpyxl.
 
@@ -542,11 +542,11 @@ The service layer is where all business logic lives. Each file corresponds to on
 
 **`cache_service.py`** — Simple in-process TTL cache for report data (configurable TTL via environment).
 
-**`gemini_service.py`** — Wrapper around the Gemini client with retry logic (configurable `GEMINI_MAX_RETRIES`) and timeout handling.
+**`edgeformer_service.py`** — Wrapper around the TorchScript EdgeFormer-PM checkpoint with retry/backoff logic and timeout handling.
 
 **`comparison_service.py`** — Cross-machine and cross-plant comparative analytics.
 
-**`whatif_service.py`** — What-if analysis service integrating simulation engine with Gemini assessment.
+**`whatif_service.py`** — What-if analysis service integrating the simulation engine with EdgeFormer-PM assessment.
 
 **`usage_service.py`** — Tracks API call counts and feature usage for SaaS metering.
 
@@ -582,7 +582,7 @@ The seeds directory contains 40+ individual seed scripts, one per entity type, e
 
 **Prerequisites**
 Python 3.11 or higher must be installed on the target machine. Verify with `python3 --version`.
-A Google Gemini API key from Google AI Studio (https://aistudio.google.com/) is required for AI features.
+A TorchScript INT8 EdgeFormer-PM checkpoint (`edgeformer_pm_int8.pt`) is required for AI features; place it at the configured `EDGEFORMER_MODEL_PATH`.
 A Razorpay account (https://razorpay.com/) is required for payment processing in production.
 Node.js is not required — all frontend JavaScript is served as static files.
 Docker and Docker Compose are optional but recommended for production deployment.
@@ -662,8 +662,8 @@ flask db upgrade
 | `JWT_SECRET_KEY` | JWT signing key | `change-this-jwt-secret` |
 | `JWT_ACCESS_MINUTES` | Access token lifetime in minutes | `15` |
 | `JWT_REFRESH_DAYS` | Refresh token lifetime in days | `7` |
-| `GEMINI_API_KEY` | Google Gemini API key | (required) |
-| `GEMINI_MODEL` | Gemini model name | `gemini-2.5-flash` |
+| `EDGEFORMER_MODEL_PATH` | TorchScript INT8 EdgeFormer-PM checkpoint path | `models/edgeformer_pm_int8.pt` |
+| `EDGEFORMER_DEVICE` | Inference device (`cpu` or ARM edge) | `cpu` |
 | `SIMULATION_MODE` | Enable built-in data simulator | `true` |
 | `SIM_API_BASE_URL` | Base URL for simulation API calls | `http://127.0.0.1:5000/api/v1` |
 | `SIM_INGEST_INTERVAL_SECONDS` | Simulation data push interval | `5` |
@@ -687,7 +687,7 @@ flask db upgrade
 
 All dependencies are listed in `requirements.txt`. Key packages and their purpose:
 
-`Flask` — web framework and WSGI application. `Flask-Login` — session-based user authentication. `Flask-WTF` — CSRF protection and form handling. `Flask-Bcrypt` — Bcrypt password hashing. `Flask-SQLAlchemy` — ORM and database session management. `Flask-Migrate` — database schema versioning via Alembic. `Flask-Mail` — email sending. `Flask-JWT-Extended` — JWT token issuance and validation. `python-dotenv` — loads `.env` file into environment. `APScheduler` — background job scheduling. `google-genai` — Google Gemini AI client. `psycopg2-binary` — PostgreSQL adapter. `reportlab` — PDF generation. `openpyxl` — Excel file generation. `requests` — HTTP client for simulation mode API calls. `markdown` — Markdown text rendering. `bleach` — HTML sanitisation for safe display of AI output. `email-validator` — email address validation in registration forms. `razorpay` — payment gateway integration. `gunicorn` — production WSGI server.
+`Flask` — web framework and WSGI application. `Flask-Login` — session-based user authentication. `Flask-WTF` — CSRF protection and form handling. `Flask-Bcrypt` — Bcrypt password hashing. `Flask-SQLAlchemy` — ORM and database session management. `Flask-Migrate` — database schema versioning via Alembic. `Flask-Mail` — email sending. `Flask-JWT-Extended` — JWT token issuance and validation. `python-dotenv` — loads `.env` file into environment. `APScheduler` — background job scheduling. `torch` — runs the EdgeFormer-PM TorchScript INT8 checkpoint for on-device inference. `psycopg2-binary` — PostgreSQL adapter. `reportlab` — PDF generation. `openpyxl` — Excel file generation. `requests` — HTTP client for simulation mode API calls. `markdown` — Markdown text rendering. `bleach` — HTML sanitisation for safe display of AI output. `email-validator` — email address validation in registration forms. `razorpay` — payment gateway integration. `gunicorn` — production WSGI server.
 
 ---
 
@@ -697,7 +697,7 @@ All dependencies are listed in `requirements.txt`. Key packages and their purpos
 
 **2. Set a strong `JWT_SECRET_KEY`** — generate separately from the session key.
 
-**3. Configure the Gemini API key** — obtain from https://aistudio.google.com/ and set `GEMINI_API_KEY`.
+**3. Provide the EdgeFormer-PM model** — place the TorchScript INT8 checkpoint (`edgeformer_pm_int8.pt`) at the path referenced by `EDGEFORMER_MODEL_PATH`.
 
 **4. Configure the database** — for SQLite development, the default `sqlite:///app.db` works. For PostgreSQL production: `DATABASE_URL=postgresql://user:password@host:5432/dbname`.
 
@@ -794,7 +794,7 @@ The application follows a clean layered architecture:
 
 **Service layer** — business logic is kept out of route handlers and placed in service modules. Route handlers validate inputs, call service functions, and render responses. Services are plain Python functions/classes with no HTTP awareness.
 
-**AI layer** — deliberately isolated in `app/ai/`. The Gemini client, prompt templates, and worker thread are all contained within this package. The rest of the application interacts with AI via `enqueue_ai_job()` and reads results from the `AiAnalysis` and `AIPrediction` tables.
+**AI layer** — deliberately isolated in `app/ai/`. The EdgeFormer-PM TorchScript loader, preprocessing, and worker thread are all contained within this package. The rest of the application interacts with AI via `enqueue_ai_job()` and reads results from the `AiAnalysis` and `AIPrediction` tables.
 
 **Model layer** — SQLAlchemy declarative models with explicit relationships, indexes, and constraints. Models are kept clean — only database structure and simple property methods. No business logic in models.
 
@@ -836,11 +836,11 @@ Response 200: `{"status": "success", "message": "heartbeat received", "last_seen
 
 **POST `/api/v1/rca/generate`** — trigger AI root cause analysis for an alert group
 
-### Google Gemini Integration
+### EdgeFormer-PM Inference
 
-The application integrates with Google Gemini 2.5 Flash through the `google-genai` Python SDK. Every AI call includes a `GoogleSearch` grounding tool that Gemini can use when external knowledge is needed. The application constructs structured JSON prompts, sends them to Gemini, and parses the strictly-JSON response back into Python dictionaries.
+The application runs the EdgeFormer-PM cross-sensor attention transformer locally via a TorchScript INT8 checkpoint (`edgeformer_pm_int8.pt`). Incoming sensor snapshots plus recent statistical context are normalised and passed directly to the model; no external grounding or API calls are required. Inference returns structured JSON-like outputs (health score, failure probability, RUL, anomaly flag, and suggested actions).
 
-All Gemini calls go through `app/services/gemini_service.py` which wraps the call with configurable retry logic (`GEMINI_MAX_RETRIES`, default 2) and timeout handling (`GEMINI_TIMEOUT_SECONDS`, default 20).
+All EdgeFormer-PM calls go through `app/services/edgeformer_service.py`, which wraps TorchScript model loading with retry/backoff and configurable timeout handling.
 
 ### Razorpay Payment Integration
 
@@ -1079,19 +1079,20 @@ Compare readings to sensor thresholds          AI Worker Thread dequeues job
      │ yes                                           run_ai_analysis(data_point)
      ▼                                                          │
 Create Alert record                                             ▼
-Assign severity + SLA deadline                        Build Gemini prompt
+Assign severity + SLA deadline                        EdgeFormer-PM preprocess
 Send email notification                                (snapshot + 24h summary)
      │                                                          │
      ▼                                                          ▼
-Alert in database                                     Call Gemini 2.5 Flash
+Alert in database                                     EdgeFormer-PM TorchScript inference
                                                                │
                                                                ▼
-                                                    Parse JSON response
+                                                    Parse structured outputs
                                                                │
                                                                ▼
                                                     Save AiAnalysis record
                                                     (health_score, risk_level,
-                                                     anomaly, suggestion)
+                                                     anomaly, RUL, failure_probability,
+                                                     suggestion)
 
 
 EVERY 30 MINUTES (Scheduler)
@@ -1099,10 +1100,10 @@ EVERY 30 MINUTES (Scheduler)
      ▼
 run_scheduled_predictions()
      │
-     ├── failure_probability_prompt → Gemini → AIPrediction.failure_probability
-     ├── rul_estimation_prompt → Gemini → AIPrediction.remaining_hours
-     ├── degradation_analysis_prompt → Gemini → AIPrediction.degradation_trend_score
-     └── preventive_action_prompt → Gemini → AIPrediction.preventive_actions
+     ├── EdgeFormer-PM failure_probability head → AIPrediction.failure_probability
+     ├── EdgeFormer-PM rul_estimation head → AIPrediction.remaining_hours
+     ├── EdgeFormer-PM degradation head → AIPrediction.degradation_trend_score
+     └── EdgeFormer-PM actions head → AIPrediction.preventive_actions
 
 
 EVERY MINUTE (Scheduler)
@@ -1146,13 +1147,13 @@ NIGHTLY 02:15 UTC (Scheduler)
 
 **Database indexes** — all high-frequency query patterns are indexed. `machine_data` has a compound index on `(machine_id, timestamp)`. `alerts` is indexed on machine, plant, company, status, severity, and created_at. `ai_analysis` is indexed on `(machine_id, timestamp)`.
 
-**Background processing** — AI analysis is done asynchronously in a worker thread, so data ingestion responses are always fast (< 50ms) even when Gemini calls take several seconds.
+**Background processing** — AI analysis is done asynchronously in a worker thread, so data ingestion responses are always fast (< 50ms) even while EdgeFormer-PM TorchScript inference runs in the background.
 
 **Result caching** — report data is cached in-process with a configurable TTL (`CACHE_DEFAULT_TTL_SECONDS=300` for general data, `REPORT_CACHE_TTL_SECONDS=900` for report data) to avoid repeated expensive database aggregations.
 
 **Nightly aggregation** — raw sensor readings are aggregated into hourly and daily stats tables nightly. Dashboard charts read from these aggregated tables rather than scanning the full `machine_data` table, making chart rendering fast even with months of data.
 
-**Gunicorn threading** — the production Gunicorn configuration uses `gthread` workers with 4 threads each. This means I/O-bound operations (database queries, Gemini API calls) can proceed concurrently within each worker without blocking.
+**Gunicorn threading** — the production Gunicorn configuration uses `gthread` workers with 4 threads each. This means I/O-bound operations (database queries, TorchScript model loads) can proceed concurrently within each worker without blocking.
 
 **Pagination** — alert lists, machine lists, and report lists are paginated to prevent large query result sets from being loaded entirely into memory.
 
@@ -1184,7 +1185,7 @@ NIGHTLY 02:15 UTC (Scheduler)
 
 **WebSocket real-time streaming** — replacing the polling-based live view with a WebSocket connection would deliver lower-latency updates to the browser and reduce HTTP overhead.
 
-**Predictive maintenance ML models** — the current predictive analysis relies entirely on Gemini. Training domain-specific LSTM or transformer models on the accumulated sensor history would provide faster, lower-cost predictions for common failure modes.
+**Predictive maintenance ML models** — the current predictive analysis relies on a single EdgeFormer-PM checkpoint. Future work includes ensembling with other lightweight time-series transformers or retraining EdgeFormer-PM on tenant-specific histories to further reduce false positives.
 
 **Multi-language support** — internationalisation (i18n) using Flask-Babel would allow the platform to serve operators in their native language — important for global manufacturing clients.
 
@@ -1208,7 +1209,7 @@ NIGHTLY 02:15 UTC (Scheduler)
 
 **Simulation mode limitations** — the built-in simulation generates synthetic sensor readings. Real machines exhibit complex, non-linear failure modes that simple simulation cannot replicate fully.
 
-**Gemini API dependency** — the AI analysis pipeline depends on Google Gemini availability. If the Gemini API is down or rate-limited, AI analysis jobs will fail after the configured number of retries and be marked with `status=failed`.
+**EdgeFormer-PM checkpoint dependency** — the AI analysis pipeline depends on the local TorchScript checkpoint being readable and compatible with the deployed PyTorch runtime. If the model file is missing or corrupted, inference jobs will fail after retries and be marked with `status=failed`.
 
 **No command-and-control** — the platform is read-only from a hardware perspective. It cannot send setpoints, alarms, or control signals back to machines. Any corrective action requires a human maintenance technician.
 
@@ -1223,7 +1224,7 @@ Ensure the virtual environment is activated (`source venv/bin/activate`) and tha
 Run `flask db stamp head` to mark the current state as up to date, then re-run `flask db upgrade`.
 
 **AI analysis always shows `status=failed`**
-Check that `GEMINI_API_KEY` is set correctly in `.env`. Verify the key is valid by testing it directly at https://aistudio.google.com/. Check the application logs for the specific Gemini error message.
+Check that `EDGEFORMER_MODEL_PATH` points to the TorchScript INT8 checkpoint and that the file is readable by the app process. Review application logs for any TorchScript load or inference errors.
 
 **Machine shows as `offline` immediately after data ingestion**
 The offline monitor checks `last_seen < now - 2 minutes`. If the machine clock is significantly behind UTC, the `last_seen` timestamp may appear old. Ensure the edge device uses NTP to synchronise its clock to UTC.
@@ -1235,7 +1236,7 @@ Copy the API token exactly from the machine detail page in the web interface. Th
 Check `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USE_TLS`, `MAIL_USERNAME`, and `MAIL_PASSWORD` in `.env`. For Gmail, ensure you are using an App Password (not your Gmail account password). Check the application logs for SMTP error messages.
 
 **Gunicorn `worker timeout`**
-If Gemini API calls are taking longer than 120 seconds, increase the `timeout` value in `deployment/gunicorn.conf.py`. The current default is 120 seconds.
+If EdgeFormer-PM inference or model loading is taking longer than 120 seconds (e.g., cold-start TorchScript load on constrained edge hardware), increase the `timeout` value in `deployment/gunicorn.conf.py`. The current default is 120 seconds.
 
 **Seeds run every time the application starts**
 Set `SEED_ON_START=false` or `ALLOW_RESEED=false` in `.env` to prevent the seed runner from executing on every startup after the first successful seed run.
@@ -1253,17 +1254,17 @@ A: Yes. The platform is hardware-agnostic. Any machine that has an edge device c
 **Q: How many machines can the platform handle?**
 A: On a reasonably sized cloud VM (4 vCPUs, 8 GB RAM, PostgreSQL), the platform can comfortably handle 50–100 machines sending data every 5 seconds. For larger deployments, the AI worker should be moved to Celery and PostgreSQL should be sized accordingly.
 
-**Q: Is the Gemini API usage billed per call?**
-A: Yes, Google Gemini API calls are billed based on token usage. Each predictive maintenance refresh triggers up to four Gemini calls per machine. With the default 30-minute refresh interval, 10 machines would generate approximately 192 Gemini calls per day.
+**Q: Is there any external AI billing?**
+A: No. EdgeFormer-PM runs locally from a TorchScript checkpoint; there are no per-call API costs.
 
-**Q: Can I use a different AI model instead of Gemini?**
-A: The AI layer is isolated in `app/ai/gemini_engine.py` and `app/services/gemini_service.py`. To use a different model, implement the same function signatures with a different client library. The rest of the application only calls these functions and does not depend on Gemini-specific types.
+**Q: Can I use a different AI model instead of EdgeFormer-PM?**
+A: The AI layer is isolated in the EdgeFormer service. To use a different model, implement the same function signatures against another TorchScript/ONNX checkpoint. The rest of the application only calls these functions and does not depend on EdgeFormer-specific types.
 
 **Q: How is data security handled for multi-tenant deployments?**
 A: All database queries include a `company_id` filter applied at the service and route level. Users can only see data belonging to their company. The `DevBypassQuery` that relaxes this scoping is disabled by default in `ProductionConfig`.
 
-**Q: What happens if the Gemini API is unavailable?**
-A: The AI worker will retry up to `GEMINI_MAX_RETRIES` times (default 2) with exponential backoff. After all retries are exhausted, the analysis record is marked `status=failed`. The application continues to function normally — data ingestion, alerts, and dashboards work without AI analysis. When Gemini becomes available again, new data points will trigger new analysis jobs.
+**Q: What happens if the model file is unavailable?**
+A: The AI worker will retry loading the checkpoint. After retries are exhausted, the analysis record is marked `status=failed`. The application continues to function normally — data ingestion, alerts, and dashboards work without AI analysis. Once a valid checkpoint is restored, new data points will trigger new analysis jobs.
 
 **Q: Can I add custom sensor types?**
 A: The current sensor configuration supports temperature, vibration, current, voltage, pressure, humidity, and speed. To add a new type, add the new field to the `MachineData` model, create a migration, and update the ingestion endpoint to read the new field.
@@ -1283,7 +1284,7 @@ A: Delete the `instance/app.db` file (SQLite) or drop and recreate the PostgreSQ
 
 **Model changes** — any change to a model must be accompanied by a Flask-Migrate migration script. Never modify existing migration scripts; always create new ones.
 
-**AI prompt changes** — all Gemini prompt strings live in `app/ai/prompt_templates.py`. Prompt changes should be tested against a live Gemini API instance to verify the JSON schema is still respected.
+**Model changes** — all EdgeFormer-PM model artefacts live under `app/ai/` (TorchScript checkpoint plus configuration). Any retraining or quantization change should be validated on a staging node to confirm output schema and latency remain within targets.
 
 **Testing** — write tests in a `tests/` directory using `pytest`. Unit-test service functions. Integration-test API endpoints using Flask test client.
 
@@ -1307,11 +1308,11 @@ A: Delete the `instance/app.db` file (SQLite) or drop and recreate the PostgreSQ
 
 ## 37. Testing Strategy
 
-**Unit tests** — test individual service functions in isolation using pytest with a mock SQLAlchemy session. Focus on: threshold evaluation logic in `alert_service`, simulation math in `simulation_engine`, calibration date clamping in seed utilities, and JSON parsing in `gemini_engine`.
+**Unit tests** — test individual service functions in isolation using pytest with a mock SQLAlchemy session. Focus on: threshold evaluation logic in `alert_service`, simulation math in `simulation_engine`, calibration date clamping in seed utilities, and tensor parsing in the EdgeFormer-PM engine.
 
 **Integration tests** — test complete request/response cycles using the Flask test client. Key scenarios: data ingestion with valid token, data ingestion with invalid token (expect 401), alert creation on threshold breach, JWT token issuance and blacklisting, and subscription enforcement redirect.
 
-**AI tests** — mock the Gemini client to test prompt construction, JSON parsing edge cases (malformed response, missing fields), and `_coerce_response` normalisation logic without consuming API quota.
+**AI tests** — mock the EdgeFormer-PM service to test preprocessing, TorchScript load failures, malformed tensor outputs, and `_coerce_response` normalisation logic without running heavy inference during unit tests.
 
 **Seed tests** — run the seed runner against a fresh in-memory SQLite database and assert all expected records were created without errors.
 
@@ -1375,7 +1376,7 @@ The Docker image can be pushed to any container registry and deployed on AWS ECS
 
 This project is provided as a portfolio and demonstration codebase. The license terms should be specified by the repository owner. Before using this code in a commercial product, ensure you comply with the licenses of all dependencies, particularly:
 
-The `google-genai` SDK is subject to Google's Terms of Service and the Gemini API usage policies.
+PyTorch is subject to its BSD-style license; ensure redistribution of the EdgeFormer-PM checkpoint complies with any model-specific terms.
 The `razorpay` SDK is subject to Razorpay's Terms of Service.
 All other Python dependencies carry their own OSI-approved licenses (MIT, BSD, Apache 2.0) as indicated in their respective PyPI package metadata.
 
@@ -1383,7 +1384,7 @@ All other Python dependencies carry their own OSI-approved licenses (MIT, BSD, A
 
 ## 40. Credits and Acknowledgments
 
-**Google Gemini** — the AI capabilities of this platform are powered by Google Gemini 2.5 Flash, accessed through the official `google-genai` Python SDK.
+**EdgeFormer-PM** — the AI capabilities of this platform are powered by the EdgeFormer-PM cross-sensor attention transformer, deployed as a TorchScript INT8 checkpoint for on-device/edge inference.
 
 **Flask ecosystem** — the project is built on Flask and the broad ecosystem of Flask extensions (Flask-Login, Flask-SQLAlchemy, Flask-Migrate, Flask-WTF, Flask-JWT-Extended, Flask-Bcrypt, Flask-Mail) maintained by their respective open-source contributors.
 
@@ -1399,7 +1400,7 @@ All other Python dependencies carry their own OSI-approved licenses (MIT, BSD, A
 
 ## 41. Conclusion
 
-Machine Monitoring is a comprehensive, production-ready Industrial IoT platform that bridges the gap between physical manufacturing equipment and modern AI-driven operations intelligence. It takes the full journey — from raw sensor signals on the shop floor, through a secure cloud data pipeline, into a Google Gemini analysis engine, and out to executives, maintenance planners, and technicians through role-appropriate dashboards.
+Machine Monitoring is a comprehensive, production-ready Industrial IoT platform that bridges the gap between physical manufacturing equipment and modern AI-driven operations intelligence. It takes the full journey — from raw sensor signals on the shop floor, through a secure cloud data pipeline, into the EdgeFormer-PM transformer running locally for analysis, and out to executives, maintenance planners, and technicians through role-appropriate dashboards.
 
 The architecture is deliberately layered and modular: hardware communicates over standard HTTP, the Flask blueprint structure keeps features independently maintainable, the service layer isolates business logic, and the AI layer is pluggable. The platform is equally at home running on a single developer laptop with SQLite and simulated sensor data, or on a production cloud server with PostgreSQL, Gunicorn multi-processing, and real machines sending live telemetry.
 
